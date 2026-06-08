@@ -5,6 +5,7 @@ import 'package:share_verify/core/widgets/sv_primary_button.dart';
 class VerificationSearchSection extends StatelessWidget {
   final String idNumber;
   final bool isSearching;
+  final FocusNode? focusNode;
   final ValueChanged<String> onIdNumberChanged;
   final VoidCallback onSearch;
 
@@ -12,6 +13,7 @@ class VerificationSearchSection extends StatelessWidget {
     super.key,
     required this.idNumber,
     required this.isSearching,
+    this.focusNode,
     required this.onIdNumberChanged,
     required this.onSearch,
   });
@@ -40,6 +42,7 @@ class VerificationSearchSection extends StatelessWidget {
             const SizedBox(height: SvSpacing.sm),
             TextFormField(
               key: ValueKey(idNumber),
+              focusNode: focusNode,
               initialValue: idNumber,
               onChanged: onIdNumberChanged,
               decoration: InputDecoration(

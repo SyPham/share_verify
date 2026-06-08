@@ -66,6 +66,17 @@ class SvAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
       centerTitle: _variant == _SvAppBarVariant.dashboard,
+      actions: [
+        IconButton(
+          icon: Icon(
+            Icons.account_circle,
+            color: _variant == _SvAppBarVariant.dashboard
+                ? SvPalette.primary
+                : SvPalette.onSurfaceVariant,
+          ),
+          onPressed: () {},
+        ),
+      ],
     );
   }
 }

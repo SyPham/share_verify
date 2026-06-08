@@ -42,6 +42,7 @@ class VerificationScreen extends GetView<VerificationController> {
                   VerificationSearchSection(
                     idNumber: controller.idNumberInput.value,
                     isSearching: controller.isSearching.value,
+                    focusNode: controller.idNumberFocus,
                     onIdNumberChanged: (value) {
                       controller.idNumberInput.value = value;
                     },

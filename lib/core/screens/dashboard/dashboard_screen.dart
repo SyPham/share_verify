@@ -70,7 +70,9 @@ class DashboardScreen extends GetView<DashboardController> {
                     value: controller.receivedCount.toString(),
                     backgroundColor: colorScheme.tertiaryContainer,
                     foregroundColor: colorScheme.onTertiaryContainer,
-                    progress: 1,
+                    progress: controller.total == 0
+                        ? 0
+                        : controller.receivedCount / controller.total,
                     progressColor: colorScheme.onTertiaryContainer,
                     icon: Icons.check_circle,
                   ),
@@ -79,8 +81,10 @@ class DashboardScreen extends GetView<DashboardController> {
                     value: controller.notReceivedCount.toString(),
                     backgroundColor: colorScheme.errorContainer,
                     foregroundColor: colorScheme.onErrorContainer,
-                    progress: 1,
-                    progressColor: colorScheme.onErrorContainer,
+                    progress: controller.total == 0
+                        ? 0
+                        : controller.notReceivedCount / controller.total,
+                    progressColor: colorScheme.error,
                     icon: Icons.pending_actions,
                   ),
                 ],

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/mock/mock_data.dart';
 import 'package:share_verify/core/models/shareholder.dart';
@@ -9,6 +10,13 @@ class VerificationController extends GetxController {
   final idNumberInput = ''.obs;
   final selectedShareholder = Rxn<Shareholder>();
   final isSearching = false.obs;
+  final idNumberFocus = FocusNode();
+
+  @override
+  void onClose() {
+    idNumberFocus.dispose();
+    super.onClose();
+  }
 
   void searchByIdNumber() {
     isSearching.value = true;
@@ -30,7 +38,7 @@ class VerificationController extends GetxController {
   }
 
   void onManualEntry() {
-    // Focus handled in UI; no-op for mock
+    idNumberFocus.requestFocus();
   }
 
   void confirmPayment() {
