@@ -23,12 +23,10 @@ class VerificationController extends GetxController {
   }
 
   void onCaptureId() {
-    if (selectedShareholder.value != null) {
-      Get.toNamed(
-        captureRouteName,
-        arguments: selectedShareholder.value,
-      );
-    }
+    Get.toNamed(
+      captureRouteName,
+      arguments: selectedShareholder.value,
+    );
   }
 
   void onManualEntry() {

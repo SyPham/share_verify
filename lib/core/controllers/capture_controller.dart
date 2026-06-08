@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:share_verify/core/mock/mock_data.dart';
 import 'package:share_verify/core/models/shareholder.dart';
 
 class CaptureController extends GetxController {
@@ -9,7 +10,9 @@ class CaptureController extends GetxController {
 
   @override
   void onInit() {
-    shareholder = Get.arguments as Shareholder;
+    final argument = Get.arguments;
+    shareholder =
+        argument is Shareholder ? argument : MockData.shareholders.first;
     super.onInit();
   }
 
