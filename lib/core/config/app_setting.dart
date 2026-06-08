@@ -1,0 +1,3 @@
+class AppSetting {
+  const AppSetting();
+}

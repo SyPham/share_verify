@@ -1,7 +1,6 @@
 import 'package:get/get.dart';
 import 'package:share_verify/core/mock/mock_data.dart';
 import 'package:share_verify/core/models/activity_item.dart';
-import 'package:share_verify/core/models/dashboard_stats.dart';
 
 class DashboardController extends GetxController {
   final stats = MockData.dashboardStats.obs;
