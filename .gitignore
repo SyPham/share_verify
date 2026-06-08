@@ -1,0 +1,12 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+*.iml
+.idea/
+
+# Worktrees
+.worktrees/
+
+# OS
+.DS_Store
