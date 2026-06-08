@@ -30,7 +30,8 @@ class SvOutlinedButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: color,
-          side: BorderSide(color: borderColor ?? color),
+          backgroundColor: SvPalette.surfaceContainerHigh,
+          side: BorderSide(color: borderColor ?? SvPalette.outlineVariant),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
           ),

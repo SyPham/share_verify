@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
 import 'package:share_verify/core/models/shareholder.dart';
+import 'package:share_verify/core/commons/palette.dart';
+import 'package:share_verify/core/widgets/sv_card.dart';
 import 'package:share_verify/core/widgets/sv_outlined_button.dart';
 import 'package:share_verify/core/widgets/sv_primary_button.dart';
 
@@ -58,33 +60,25 @@ class SuccessScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: SvSpacing.lg),
-                      Card(
-                        margin: EdgeInsets.zero,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
-                        ),
-                        color: theme.colorScheme.surface,
-                        child: Padding(
-                          padding: const EdgeInsets.all(SvSpacing.md),
-                          child: Column(
-                            children: [
-                              _DetailRow(
-                                label: 'Mã cổ đông',
-                                value: shareholder?.code ?? '--',
-                              ),
-                              const SizedBox(height: SvSpacing.sm),
-                              _DetailRow(
-                                label: 'Họ tên',
-                                value: shareholder?.fullName ?? '--',
-                              ),
-                              const SizedBox(height: SvSpacing.sm),
-                              const _DetailRow(
-                                label: 'Thời gian',
-                                value: '08:45, 25/05/2024',
-                              ),
-                            ],
-                          ),
+                      SvCard(
+                        padding: const EdgeInsets.all(SvSpacing.md),
+                        child: Column(
+                          children: [
+                            _DetailRow(
+                              label: 'Mã cổ đông',
+                              value: shareholder?.code ?? '--',
+                            ),
+                            Divider(color: SvPalette.outlineVariant, height: 24),
+                            _DetailRow(
+                              label: 'Họ tên',
+                              value: shareholder?.fullName ?? '--',
+                            ),
+                            Divider(color: SvPalette.outlineVariant, height: 24),
+                            const _DetailRow(
+                              label: 'Thời gian',
+                              value: '08:45, 25/05/2024',
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: SvSpacing.md),

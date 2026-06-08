@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/models/shareholder.dart';
+import 'package:share_verify/core/widgets/sv_card.dart';
 import 'package:share_verify/core/widgets/sv_outlined_button.dart';
 import 'package:share_verify/core/widgets/sv_primary_button.dart';
 
@@ -19,15 +20,9 @@ class CaptureOverlayCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(SvSpacing.md),
-        child: Column(
+    return SvCard(
+      padding: const EdgeInsets.all(SvSpacing.md),
+      child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -101,7 +96,6 @@ class CaptureOverlayCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }

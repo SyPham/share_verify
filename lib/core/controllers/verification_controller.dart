@@ -11,14 +11,17 @@ class VerificationController extends GetxController {
   final selectedShareholder = Rxn<Shareholder>();
   final isSearching = false.obs;
   final idNumberFocus = FocusNode();
+  final idNumberController = TextEditingController();
 
   @override
   void onClose() {
+    idNumberController.dispose();
     idNumberFocus.dispose();
     super.onClose();
   }
 
   void searchByIdNumber() {
+    idNumberInput.value = idNumberController.text;
     isSearching.value = true;
     selectedShareholder.value = MockData.findByIdNumber(idNumberInput.value);
     isSearching.value = false;
@@ -26,7 +29,9 @@ class VerificationController extends GetxController {
 
   void onScanQr() {
     // Mock: auto-fill SH0001 CCCD
-    idNumberInput.value = '001234567890';
+    const mockId = '001234567890';
+    idNumberController.text = mockId;
+    idNumberInput.value = mockId;
     searchByIdNumber();
   }
 
@@ -48,6 +53,7 @@ class VerificationController extends GetxController {
   }
 
   void resetSelection() {
+    idNumberController.clear();
     idNumberInput.value = '';
     selectedShareholder.value = null;
     isSearching.value = false;

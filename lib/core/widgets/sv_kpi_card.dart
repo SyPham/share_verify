@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
+import 'package:share_verify/core/commons/palette.dart';
 
 class SvKpiCard extends StatelessWidget {
   final String label;
@@ -30,7 +31,7 @@ class SvKpiCard extends StatelessWidget {
         color: backgroundColor,
         borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+          color: SvPalette.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
       child: Column(

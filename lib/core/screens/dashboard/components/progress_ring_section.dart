@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
+import 'package:share_verify/core/widgets/sv_card.dart';
 
 class ProgressRingSection extends StatelessWidget {
   final double progress;
@@ -15,14 +16,8 @@ class ProgressRingSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    return Container(
-      width: double.infinity,
+    return SvCard(
       padding: const EdgeInsets.all(SvSpacing.md),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

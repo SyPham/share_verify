@@ -12,56 +12,59 @@ class VerificationScreen extends GetView<VerificationController> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DateTime>(
-      stream: Stream<DateTime>.periodic(
-        const Duration(seconds: 1),
-        (_) => DateTime.now(),
-      ),
-      initialData: DateTime.now(),
-      builder: (context, snapshot) {
-        final now = snapshot.data ?? DateTime.now();
-        return Obx(() {
-          final selectedShareholder = controller.selectedShareholder.value;
-          return Scaffold(
-            appBar: SvAppBar.verification(clockText: _formatClock(now)),
-            body: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
-                SvSpacing.containerMargin,
-                SvSpacing.lg,
-                SvSpacing.containerMargin,
-                SvSpacing.lg,
-              ),
-              child: Column(
-                children: [
-                  VerificationActionButtons(
-                    onScanQr: controller.onScanQr,
-                    onCaptureId: controller.onCaptureId,
-                    onManualEntry: controller.onManualEntry,
-                  ),
-                  const SizedBox(height: SvSpacing.lg),
-                  VerificationSearchSection(
-                    idNumber: controller.idNumberInput.value,
-                    isSearching: controller.isSearching.value,
-                    focusNode: controller.idNumberFocus,
-                    onIdNumberChanged: (value) {
-                      controller.idNumberInput.value = value;
-                    },
-                    onSearch: controller.searchByIdNumber,
-                  ),
-                  if (selectedShareholder != null) ...[
-                    const SizedBox(height: SvSpacing.lg),
-                    VerificationResultSection(
-                      shareholder: selectedShareholder,
-                      onConfirmPayment: controller.confirmPayment,
-                    ),
-                  ],
-                ],
-              ),
+    return Obx(() {
+      final selectedShareholder = controller.selectedShareholder.value;
+      return Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: StreamBuilder<DateTime>(
+            stream: Stream<DateTime>.periodic(
+              const Duration(seconds: 1),
+              (_) => DateTime.now(),
             ),
-          );
-        });
-      },
-    );
+            initialData: DateTime.now(),
+            builder: (context, snapshot) {
+              final now = snapshot.data ?? DateTime.now();
+              return SvAppBar.verification(clockText: _formatClock(now));
+            },
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(
+            SvSpacing.containerMargin,
+            SvSpacing.lg,
+            SvSpacing.containerMargin,
+            SvSpacing.lg,
+          ),
+          child: Column(
+            children: [
+              VerificationActionButtons(
+                onScanQr: controller.onScanQr,
+                onCaptureId: controller.onCaptureId,
+                onManualEntry: controller.onManualEntry,
+              ),
+              const SizedBox(height: SvSpacing.lg),
+              VerificationSearchSection(
+                controller: controller.idNumberController,
+                isSearching: controller.isSearching.value,
+                focusNode: controller.idNumberFocus,
+                onIdNumberChanged: (value) {
+                  controller.idNumberInput.value = value;
+                },
+                onSearch: controller.searchByIdNumber,
+              ),
+              if (selectedShareholder != null) ...[
+                const SizedBox(height: SvSpacing.lg),
+                VerificationResultSection(
+                  shareholder: selectedShareholder,
+                  onConfirmPayment: controller.confirmPayment,
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    });
   }
 
   String _formatClock(DateTime dateTime) {

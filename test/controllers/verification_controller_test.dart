@@ -9,7 +9,7 @@ void main() {
 
   test('searchByIdNumber finds SH0001 mock shareholder', () {
     final c = VerificationController();
-    c.idNumberInput.value = '001234567890';
+    c.idNumberController.text = '001234567890';
     c.searchByIdNumber();
     expect(c.selectedShareholder.value?.code, 'SH0001');
     expect(c.selectedShareholder.value?.status, PaymentStatus.notReceived);
@@ -17,14 +17,14 @@ void main() {
 
   test('searchByIdNumber clears result when not found', () {
     final c = VerificationController();
-    c.idNumberInput.value = '999';
+    c.idNumberController.text = '999';
     c.searchByIdNumber();
     expect(c.selectedShareholder.value, isNull);
   });
 
   test('resetSelection clears selected shareholder and id input', () {
     final c = VerificationController();
-    c.idNumberInput.value = '001234567890';
+    c.idNumberController.text = '001234567890';
     c.searchByIdNumber();
 
     expect(c.selectedShareholder.value, isNotNull);
@@ -34,6 +34,7 @@ void main() {
 
     expect(c.selectedShareholder.value, isNull);
     expect(c.idNumberInput.value, isEmpty);
+    expect(c.idNumberController.text, isEmpty);
     expect(c.isSearching.value, isFalse);
   });
 }

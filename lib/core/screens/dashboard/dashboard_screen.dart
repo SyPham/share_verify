@@ -5,6 +5,7 @@ import 'package:share_verify/core/controllers/dashboard_controller.dart';
 import 'package:share_verify/core/screens/dashboard/components/progress_ring_section.dart';
 import 'package:share_verify/core/screens/dashboard/components/recent_activity_list.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
+import 'package:share_verify/core/widgets/sv_card.dart';
 import 'package:share_verify/core/widgets/sv_kpi_card.dart';
 
 class DashboardScreen extends GetView<DashboardController> {
@@ -33,15 +34,10 @@ class DashboardScreen extends GetView<DashboardController> {
                 percentText: '$completionPercent%',
               ),
               const SizedBox(height: SvSpacing.md),
-              Container(
+              SvCard(
                 padding: const EdgeInsets.symmetric(
                   horizontal: SvSpacing.md,
                   vertical: SvSpacing.sm,
-                ),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
-                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

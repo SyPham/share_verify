@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
+import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/models/activity_item.dart';
+import 'package:share_verify/core/widgets/sv_card.dart';
 
 class RecentActivityList extends StatelessWidget {
   final List<ActivityItem> activities;
@@ -10,19 +12,17 @@ class RecentActivityList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
+    return SvCard(
+      showShadow: false,
       child: ListView.separated(
         itemCount: activities.length,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         separatorBuilder: (_, __) => Divider(
           height: 1,
-          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          indent: SvSpacing.md,
+          endIndent: SvSpacing.md,
+          color: SvPalette.outlineVariant,
         ),
         itemBuilder: (context, index) {
           final activity = activities[index];

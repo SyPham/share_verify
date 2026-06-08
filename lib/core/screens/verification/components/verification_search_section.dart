@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
+import 'package:share_verify/core/commons/palette.dart';
+import 'package:share_verify/core/widgets/sv_card.dart';
 import 'package:share_verify/core/widgets/sv_primary_button.dart';
 
 class VerificationSearchSection extends StatelessWidget {
-  final String idNumber;
+  final TextEditingController controller;
   final bool isSearching;
   final FocusNode? focusNode;
   final ValueChanged<String> onIdNumberChanged;
@@ -11,7 +13,7 @@ class VerificationSearchSection extends StatelessWidget {
 
   const VerificationSearchSection({
     super.key,
-    required this.idNumber,
+    required this.controller,
     required this.isSearching,
     this.focusNode,
     required this.onIdNumberChanged,
@@ -21,51 +23,49 @@ class VerificationSearchSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      color: theme.colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(SvSpacing.md),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Số giấy tờ',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+    return SvCard(
+      padding: const EdgeInsets.all(SvSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Số giấy tờ',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: SvSpacing.sm),
-            TextFormField(
-              key: ValueKey(idNumber),
-              focusNode: focusNode,
-              initialValue: idNumber,
-              onChanged: onIdNumberChanged,
-              decoration: InputDecoration(
-                hintText: 'Nhập CCCD / CMND / Passport',
-                filled: true,
-                fillColor: theme.colorScheme.surfaceContainerLow,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(SvSpacing.radiusXl),
-                  borderSide:
-                      BorderSide(color: theme.colorScheme.outlineVariant),
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          TextFormField(
+            controller: controller,
+            focusNode: focusNode,
+            onChanged: onIdNumberChanged,
+            decoration: InputDecoration(
+              hintText: 'Nhập CCCD / CMND / Passport',
+              filled: true,
+              fillColor: SvPalette.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+                borderSide: const BorderSide(color: SvPalette.outline),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+                borderSide: const BorderSide(color: SvPalette.outline),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+                borderSide: const BorderSide(
+                  color: SvPalette.primary,
+                  width: 2,
                 ),
               ),
             ),
-            const SizedBox(height: SvSpacing.sm),
-            SvPrimaryButton(
-              label: 'Tìm Kiếm',
-              onPressed: isSearching ? null : onSearch,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          SvPrimaryButton(
+            label: 'Tìm Kiếm',
+            onPressed: isSearching ? null : onSearch,
+          ),
+        ],
       ),
     );
   }
