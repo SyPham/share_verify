@@ -3,11 +3,14 @@ import 'package:get/get.dart';
 import 'package:share_verify/main.dart';
 
 void main() {
-  testWidgets('ShareVerifyApp shows shell stub', (WidgetTester tester) async {
+  tearDown(Get.reset);
+
+  testWidgets('ShareVerifyApp opens verification tab', (WidgetTester tester) async {
     await tester.pumpWidget(const ShareVerifyApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Shell'), findsOneWidget);
-    Get.reset();
+    expect(find.text('Quét QR CCCD'), findsOneWidget);
+    expect(find.text('Kiểm Tra'), findsOneWidget);
+    expect(find.text('Dashboard'), findsOneWidget);
   });
 }
