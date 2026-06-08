@@ -38,4 +38,10 @@ class VerificationController extends GetxController {
     if (sh == null) return;
     Get.toNamed(successRouteName, arguments: sh);
   }
+
+  void resetSelection() {
+    idNumberInput.value = '';
+    selectedShareholder.value = null;
+    isSearching.value = false;
+  }
 }

@@ -21,4 +21,19 @@ void main() {
     c.searchByIdNumber();
     expect(c.selectedShareholder.value, isNull);
   });
+
+  test('resetSelection clears selected shareholder and id input', () {
+    final c = VerificationController();
+    c.idNumberInput.value = '001234567890';
+    c.searchByIdNumber();
+
+    expect(c.selectedShareholder.value, isNotNull);
+    expect(c.idNumberInput.value, '001234567890');
+
+    c.resetSelection();
+
+    expect(c.selectedShareholder.value, isNull);
+    expect(c.idNumberInput.value, isEmpty);
+    expect(c.isSearching.value, isFalse);
+  });
 }
