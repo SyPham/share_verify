@@ -24,7 +24,20 @@ class ShellScreen extends GetView<ShellController> {
             ],
           ),
           floatingActionButton: controller.tabIndex.value == 0
-              ? SvFabQr(onPressed: verificationController.onScanQr)
+              ? Obx(() {
+                  final ready =
+                      verificationController.canProceedToBarcodeScreen &&
+                      !verificationController.isSubmitting.value;
+                  return SvFabQr(
+                    onPressed: ready
+                        ? verificationController.goToBarcodeScreen
+                        : () {
+                            verificationController.errorMessage.value =
+                                'Vui lòng chụp ảnh chứng cứ và nhập đủ thông tin trước';
+                          },
+                    icon: Icons.qr_code_2,
+                  );
+                })
               : null,
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
           bottomNavigationBar: SvBottomNav(

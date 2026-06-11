@@ -1,0 +1,48 @@
+# Flutter/Dart build & tooling
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+.idea/
+
+# FVM
+.fvm/
+
+# Worktrees
+.worktrees/
+
+# OS
+.DS_Store
+
+# Git
+.git/
+
+# Android
+android/.gradle/
+android/app/build/
+android/local.properties
+android/**/GeneratedPluginRegistrant.java
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+
+# macOS
+macos/Pods/
+macos/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Linux / Windows generated
+linux/flutter/generated_*
+windows/flutter/generated_*
+
+# Xcode / CocoaPods
+**/xcuserdata/
+Pods/
+coverage/

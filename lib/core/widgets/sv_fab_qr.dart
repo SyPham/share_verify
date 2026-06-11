@@ -3,8 +3,13 @@ import 'package:share_verify/core/commons/palette.dart';
 
 class SvFabQr extends StatelessWidget {
   final VoidCallback? onPressed;
+  final IconData icon;
 
-  const SvFabQr({super.key, this.onPressed});
+  const SvFabQr({
+    super.key,
+    this.onPressed,
+    this.icon = Icons.qr_code_scanner,
+  });
 
   static const double _size = 64;
 
@@ -21,7 +26,7 @@ class SvFabQr extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        child: const Icon(Icons.qr_code_scanner, size: 28),
+        child: Icon(icon, size: 28),
       ),
     );
   }

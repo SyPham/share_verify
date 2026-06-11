@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/controllers/dashboard_controller.dart';
 import 'package:share_verify/core/screens/dashboard/components/progress_ring_section.dart';
+import 'package:share_verify/core/screens/settings/settings_screen.dart';
 import 'package:share_verify/core/screens/dashboard/components/recent_activity_list.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
@@ -15,20 +16,35 @@ class DashboardScreen extends GetView<DashboardController> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: const SvAppBar.dashboard(),
+      appBar: SvAppBar.dashboard(
+        onOpenSettings: () => Get.toNamed(SettingsScreen.routeName),
+      ),
       body: Obx(() {
+        if (controller.isLoading.value && controller.recentActivities.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
         final completionPercent = (controller.completionFraction * 100).floor();
         final completionValue = completionPercent / 100;
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(
-            SvSpacing.containerMargin,
-            SvSpacing.lg,
-            SvSpacing.containerMargin,
-            SvSpacing.lg,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+        return RefreshIndicator(
+          onRefresh: controller.refresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(
+              SvSpacing.containerMargin,
+              SvSpacing.lg,
+              SvSpacing.containerMargin,
+              SvSpacing.lg,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (controller.errorMessage.value != null) ...[
+                  _DashboardErrorBanner(
+                    message: controller.errorMessage.value!,
+                  ),
+                  const SizedBox(height: SvSpacing.md),
+                ],
               ProgressRingSection(
                 progress: completionValue,
                 percentText: '$completionPercent%',
@@ -44,7 +60,7 @@ class DashboardScreen extends GetView<DashboardController> {
                   children: [
                     Text('Tổng số cổ đông', style: Theme.of(context).textTheme.titleMedium),
                     Text(
-                      _formatNumber(controller.total),
+                      _formatDashboardNumber(controller.total),
                       style: Theme.of(
                         context,
                       ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -95,23 +111,50 @@ class DashboardScreen extends GetView<DashboardController> {
               ),
               const SizedBox(height: SvSpacing.sm),
               RecentActivityList(activities: controller.recentActivities),
-            ],
+              ],
+            ),
           ),
         );
       }),
     );
   }
 
-  String _formatNumber(int value) {
-    final source = value.toString();
-    final buffer = StringBuffer();
-    for (int i = 0; i < source.length; i++) {
-      final indexFromEnd = source.length - i;
-      buffer.write(source[i]);
-      if (indexFromEnd > 1 && indexFromEnd % 3 == 1) {
-        buffer.write(',');
-      }
-    }
-    return buffer.toString();
+}
+
+class _DashboardErrorBanner extends StatelessWidget {
+  final String message;
+
+  const _DashboardErrorBanner({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(SvSpacing.sm),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+      ),
+      child: Text(
+        message,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onErrorContainer,
+            ),
+      ),
+    );
   }
+}
+
+String _formatDashboardNumber(int value) {
+  final source = value.toString();
+  final buffer = StringBuffer();
+  for (int i = 0; i < source.length; i++) {
+    final indexFromEnd = source.length - i;
+    buffer.write(source[i]);
+    if (indexFromEnd > 1 && indexFromEnd % 3 == 1) {
+      buffer.write(',');
+    }
+  }
+  return buffer.toString();
 }

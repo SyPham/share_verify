@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
+import 'package:share_verify/core/models/payment_status.dart';
 import 'package:share_verify/core/models/shareholder.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
 import 'package:share_verify/core/widgets/sv_primary_button.dart';
@@ -9,12 +10,18 @@ import 'package:share_verify/core/widgets/sv_status_badge.dart';
 
 class VerificationResultSection extends StatelessWidget {
   final Shareholder shareholder;
-  final VoidCallback onConfirmPayment;
+  final VoidCallback? onViewRecipients;
+  final VoidCallback? onProcessNextPerson;
+  final bool isSubmitting;
+  final bool isLoadingRecipients;
 
   const VerificationResultSection({
     super.key,
     required this.shareholder,
-    required this.onConfirmPayment,
+    this.onViewRecipients,
+    this.onProcessNextPerson,
+    this.isSubmitting = false,
+    this.isLoadingRecipients = false,
   });
 
   @override
@@ -71,13 +78,48 @@ class VerificationResultSection extends StatelessWidget {
                   label: 'Số cổ phần sở hữu',
                   value: '${shareholder.shares} CP',
                 ),
-                const SizedBox(height: SvSpacing.md),
-                SvPrimaryButton(
-                  label: 'XÁC NHẬN ĐÃ PHÁT TIỀN',
-                  icon: Icons.check_circle,
-                  onPressed: onConfirmPayment,
-                  height: 64,
-                ),
+                if (isSubmitting) ...[
+                  const SizedBox(height: SvSpacing.md),
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: SvSpacing.sm),
+                  Text(
+                    'Đang lưu thông tin phụ cấp...',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                if (shareholder.status == PaymentStatus.received) ...[
+                  const SizedBox(height: SvSpacing.md),
+                  if (onViewRecipients != null)
+                    SvPrimaryButton(
+                      label: isLoadingRecipients
+                          ? 'Đang tải...'
+                          : 'Xem thông tin người nhận',
+                      icon: Icons.people_outline,
+                      onPressed: isLoadingRecipients ? null : onViewRecipients,
+                      backgroundColor: theme.colorScheme.secondaryContainer,
+                      foregroundColor: theme.colorScheme.onSecondaryContainer,
+                      height: 56,
+                    ),
+                  if (onViewRecipients != null) const SizedBox(height: SvSpacing.sm),
+                  if (onProcessNextPerson != null) ...[
+                    SvPrimaryButton(
+                      label: 'Xử lý người tiếp theo',
+                      icon: Icons.restart_alt,
+                      onPressed: onProcessNextPerson,
+                      height: 56,
+                    ),
+                    const SizedBox(height: SvSpacing.sm),
+                  ],
+                  Text(
+                    'Cổ đông này đã nhận phụ cấp.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -98,7 +140,11 @@ class VerificationResultSection extends StatelessWidget {
                 const SizedBox(width: SvSpacing.xs),
                 Expanded(
                   child: Text(
-                    'Vui lòng kiểm tra kỹ CCCD trước khi xác nhận.',
+                    shareholder.status == PaymentStatus.received
+                        ? 'Xem chi tiết người nhận và ảnh chứng cứ bên trên.'
+                        : isSubmitting
+                            ? 'Hệ thống đang tự động lưu sau khi quét mã cổ đông.'
+                            : 'Thông tin sẽ được lưu tự động khi quét mã cổ đông.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),

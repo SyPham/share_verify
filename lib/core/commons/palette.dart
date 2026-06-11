@@ -3,17 +3,35 @@ import 'package:flutter/material.dart';
 class SvPalette {
   SvPalette._();
 
-  static const primary = Color(0xFF003D9B);
-  static const primaryContainer = Color(0xFF0052CC);
+  /// Becamex brand — tím.
+  static const brandPurple = Color(0xFF5E215D);
+  /// Becamex brand — cam.
+  static const brandOrange = Color(0xFFF35800);
+  /// Cam nhạt (accent phụ).
+  static const brandOrangeLight = Color(0xFFF07523);
+
+  static const primary = brandPurple;
+  static const primaryContainer = Color(0xFFF3E5F2);
   static const onPrimary = Color(0xFFFFFFFF);
-  static const onPrimaryContainer = Color(0xFFC4D2FF);
-  static const secondary = Color(0xFF0059B8);
-  static const secondaryContainer = Color(0xFF0071E6);
-  static const onSecondaryContainer = Color(0xFFFEFCFF);
-  static const tertiary = Color(0xFF004E32);
-  static const tertiaryContainer = Color(0xFF006844);
+  static const onPrimaryContainer = Color(0xFF4A1A49);
+
+  static const secondary = brandOrange;
+  static const secondaryContainer = Color(0xFFFFE8D9);
+  static const onSecondary = Color(0xFFFFFFFF);
+  static const onSecondaryContainer = Color(0xFF5C1A00);
+
+  static const tertiary = brandOrangeLight;
+  static const tertiaryContainer = Color(0xFFFFF0E6);
   static const onTertiary = Color(0xFFFFFFFF);
-  static const onTertiaryContainer = Color(0xFF7DE7B2);
+  static const onTertiaryContainer = Color(0xFF6B2800);
+
+  static const warning = brandOrange;
+  static const warningContainer = Color(0xFFFFF3E0);
+  static const onWarningContainer = Color(0xFF5D4037);
+  static const warningBorder = Color(0xFFFFB74D);
+  static const warningChipBackground = Color(0xFFFFE0B2);
+  static const warningMuted = Color(0xFF795548);
+
   static const error = Color(0xFFBA1A1A);
   static const errorContainer = Color(0xFFFFDAD6);
   static const onErrorContainer = Color(0xFF93000A);
@@ -29,6 +47,6 @@ class SvPalette {
   static const surfaceContainer = Color(0xFFEDEEF0);
   static const surfaceContainerHigh = Color(0xFFE7E8EA);
   static const surfaceContainerHighest = Color(0xFFE1E2E4);
-  static const primaryFixed = Color(0xFFDAE2FF);
-  static const secondaryFixed = Color(0xFFD7E2FF);
+  static const primaryFixed = Color(0xFFF3E5F2);
+  static const secondaryFixed = Color(0xFFFFE8D9);
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/widgets/sv_primary_button.dart';
 
+@Deprecated('Use VerificationIdentitySection instead')
 class VerificationActionButtons extends StatelessWidget {
   final VoidCallback onScanQr;
   final VoidCallback onCaptureId;

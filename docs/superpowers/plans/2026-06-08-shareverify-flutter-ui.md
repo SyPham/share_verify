@@ -460,7 +460,7 @@ import 'package:share_verify/core/models/payment_status.dart';
 import 'package:share_verify/core/models/shareholder.dart';
 
 class MockData {
-  static const eventTitle = 'ĐẠI HỘI CỔ ĐÔNG 2024';
+  static const eventTitle = 'ĐẠI HỘI CỔ ĐÔNG 2026';
 
   static final shareholders = <Shareholder>[
     const Shareholder(
@@ -790,7 +790,7 @@ class SvPrimaryButton extends StatelessWidget {
 `SvBottomNav` — two tabs: `Kiểm Tra` (fact_check), `Dashboard` (dashboard); active tab gets `secondaryContainer` pill background per design.
 
 `SvAppBar` — two variants:
-- Verification: icon `corporate_fare`, title `ĐẠI HỘI CỔ ĐÔNG 2024`, subtitle live clock
+- Verification: icon `corporate_fare`, title `ĐẠI HỘI CỔ ĐÔNG 2026`, subtitle live clock
 - Dashboard: menu icon, title `Xác minh Trợ cấp`
 
 `SvResultInfoRow` — icon circle + label + value (used in result card).
@@ -1181,7 +1181,7 @@ git commit -m "feat: add shell screen with Kiểm Tra and Dashboard tabs"
 - Create: `lib/core/screens/verification/components/verification_result_section.dart`
 
 **Design sections to implement (top → bottom):**
-1. App bar: `ĐẠI HỘI CỔ ĐÔNG 2024` + live clock
+1. App bar: `ĐẠI HỘI CỔ ĐÔNG 2026` + live clock
 2. Primary button: `Quét QR CCCD`
 3. Two secondary buttons: `Chụp CCCD / Hộ Chiếu`, `Nhập Tay`
 4. Search card: label `Số giấy tờ`, placeholder `Nhập CCCD / CMND / Passport`, button `Tìm Kiếm`
