@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
+import 'package:share_verify/core/services/apple_vision_ocr_service.dart';
 import 'package:share_verify/core/models/ocr_result.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/utils/vision_text_layout.dart';
-import 'package:vision_text_recognition/vision_text_recognition.dart';
 
 typedef OcrTextRecognizer = Future<String> Function(
   Uint8List imageBytes, {
@@ -18,23 +18,18 @@ class OcrService {
     OcrTextRecognizer? recognizeText,
     OcrRemoteSource? ocrRemote,
     AppConfigService? appConfig,
+    AppleVisionOcrService? appleVision,
   })  : _recognizeTextOverride = recognizeText,
         _ocrRemote = ocrRemote,
-        _appConfig = appConfig;
+        _appConfig = appConfig,
+        _appleVision = appleVision;
 
   final OcrTextRecognizer? _recognizeTextOverride;
   final OcrRemoteSource? _ocrRemote;
   final AppConfigService? _appConfig;
+  final AppleVisionOcrService? _appleVision;
   TextRecognizer? _textRecognizerInstance;
 
-  static const _iosVisionConfig = TextRecognitionConfig(
-    recognitionLevel: RecognitionLevel.accurate,
-    usesLanguageCorrection: true,
-    automaticallyDetectsLanguage: true,
-    preferredLanguages: ['vi-VN', 'vi', 'en-US'],
-    minimumTextHeight: 0.008,
-    revision: 3,
-  );
 
   Future<OcrResult> extractIdentity(
     Uint8List imageBytes, {
@@ -43,13 +38,20 @@ class OcrService {
     final remote = await _tryRemoteOcr(imageBytes, docType: docType);
     if (remote != null) return remote;
 
+    if (_appleVision != null || (!kIsWeb && Platform.isIOS)) {
+      try {
+        final vision = _appleVision ?? AppleVisionOcrService();
+        return await vision.extractIdentity(imageBytes, docType: docType);
+      } catch (error) {
+        debugPrint('Apple Vision OCR failed, falling back to ML Kit: $error');
+        final text = await _recognizeWithMlKit(imageBytes);
+        return parseRecognizedText(text, docType: docType);
+      }
+    }
+
     if (_recognizeTextOverride != null) {
       final text = await _recognizeText(imageBytes, docType: docType);
       return parseRecognizedText(text, docType: docType);
-    }
-
-    if (!kIsWeb && Platform.isIOS) {
-      return _extractIdentityWithAppleVision(imageBytes, docType: docType);
     }
 
     final text = await _recognizeText(imageBytes, docType: docType);
@@ -77,65 +79,6 @@ class OcrService {
     return null;
   }
 
-  Future<OcrResult> _extractIdentityWithAppleVision(
-    Uint8List imageBytes, {
-    required String docType,
-  }) async {
-    try {
-      final result = await VisionTextRecognition.recognizeTextWithConfig(
-        imageBytes,
-        _iosVisionConfig,
-      );
-
-      if (!result.hasText) return const OcrResult();
-
-      final candidates = <String>{
-        VisionTextLayout.blocksToLines(result.textBlocks),
-        result.blocksSortedByPosition.map((block) => block.text.trim()).join('\n'),
-        result.getConfidentText(0.5),
-        result.fullText,
-      }..removeWhere((text) => text.trim().isEmpty);
-
-      return _parseBestResult(candidates, docType: docType);
-    } catch (error) {
-      debugPrint('Apple Vision OCR failed, falling back to ML Kit: $error');
-      final text = await _recognizeWithMlKit(imageBytes);
-      return parseRecognizedText(text, docType: docType);
-    }
-  }
-
-  static OcrResult _parseBestResult(
-    Iterable<String> texts, {
-    required String docType,
-  }) {
-    OcrResult? best;
-    var bestScore = -1;
-
-    for (final text in texts) {
-      final parsed = parseRecognizedText(_normalizeOcrText(text), docType: docType);
-      final score = _scoreParsedResult(parsed);
-      if (score > bestScore) {
-        bestScore = score;
-        best = parsed;
-      }
-    }
-
-    return best ?? const OcrResult();
-  }
-
-  static int _scoreParsedResult(OcrResult result) {
-    var score = 0;
-    if (result.hasIdentityNo) score += 20;
-    if (result.hasFullName) {
-      score += 10;
-      score += _diacriticCount(result.fullName!);
-    }
-    if (result.hasBirthDate) score += 5;
-    return score;
-  }
-
-  static int _diacriticCount(String value) =>
-      RegExp(r'[À-ỹ]').allMatches(value).length;
 
   Future<String?> extractIdNumber(
     Uint8List imageBytes, {
@@ -155,25 +98,22 @@ class OcrService {
     }
 
     if (!kIsWeb && Platform.isIOS) {
-      return _recognizeWithAppleVision(imageBytes);
+      try {
+        final recognizer = PluginAppleVisionRecognizer();
+        final result = await recognizer.recognize(imageBytes);
+        if (result.textBlocks.isNotEmpty) {
+          return VisionTextLayout.blocksToLines(result.textBlocks);
+        }
+        return result.fullText;
+      } catch (error) {
+        debugPrint('Apple Vision OCR failed, falling back to ML Kit: $error');
+        return _recognizeWithMlKit(imageBytes);
+      }
     }
 
     return _recognizeWithMlKit(imageBytes);
   }
 
-  Future<String> _recognizeWithAppleVision(Uint8List imageBytes) async {
-    try {
-      final result = await VisionTextRecognition.recognizeTextWithConfig(
-        imageBytes,
-        _iosVisionConfig,
-      );
-      if (!result.hasText) return '';
-      return VisionTextLayout.blocksToLines(result.textBlocks);
-    } catch (error) {
-      debugPrint('Apple Vision OCR failed, falling back to ML Kit: $error');
-      return _recognizeWithMlKit(imageBytes);
-    }
-  }
 
   Future<String> _recognizeWithMlKit(Uint8List imageBytes) async {
     final file = File(

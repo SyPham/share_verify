@@ -5,7 +5,19 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
+import 'package:share_verify/core/services/apple_vision_ocr_service.dart';
 import 'package:share_verify/core/services/ocr_service.dart';
+import 'package:vision_text_recognition/vision_text_recognition.dart';
+
+
+class _FakeVisionForOcr implements AppleVisionRecognizer {
+  final TextRecognitionResult result;
+
+  _FakeVisionForOcr(this.result);
+
+  @override
+  Future<TextRecognitionResult> recognize(Uint8List imageBytes) async => result;
+}
 
 void main() {
   setUp(() {
@@ -267,6 +279,51 @@ Nguyễn Văn C
 
       expect(result.identityNo, '079090001234');
       expect(result.fullName, 'NGUYỄN VĂN A');
+    });
+  });
+
+  group('extractIdentity Apple Vision fallback', () {
+    test('uses injected vision service when remote disabled', () async {
+      final appConfig = AppConfigService();
+      await appConfig.load();
+      await appConfig.saveUseRemoteOcr(false);
+
+      final visionService = AppleVisionOcrService(
+        recognizer: _FakeVisionForOcr(TextRecognitionResult(
+          fullText: 'SỐ 174324001\nHọ tên: NGUYỄN HOÀI LINH',
+          textBlocks: [
+            TextBlock(
+              text: 'SỐ 174324001',
+              confidence: 0.91,
+              boundingBox: const BoundingBox(x: 0.1, y: 0.2, width: 0.3, height: 0.04),
+            ),
+            TextBlock(
+              text: 'Họ tên: NGUYỄN HOÀI LINH',
+              confidence: 0.84,
+              boundingBox: const BoundingBox(x: 0.1, y: 0.28, width: 0.5, height: 0.04),
+            ),
+          ],
+          confidence: 0.87,
+        )),
+      );
+
+      final service = OcrService(
+        appConfig: appConfig,
+        appleVision: visionService,
+        recognizeText: (_, {required String docType}) async {
+          throw StateError('ML Kit should not run when vision succeeds');
+        },
+      );
+
+      final result = await service.extractIdentity(
+        Uint8List.fromList([1, 2, 3]),
+        docType: 'CMND',
+      );
+
+      expect(result.identityNo, '174324001');
+      expect(result.fullName, 'NGUYỄN HOÀI LINH');
+      expect(result.idConfidence, isNotNull);
+      expect(result.nameConfidence, isNotNull);
     });
   });
 }
