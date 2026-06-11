@@ -24,6 +24,7 @@ class CaptureEvidenceScreen extends GetView<CaptureController> {
     return Obx(() {
       final errorMessage = controller.errorMessage.value;
       final isSubmitting = controller.isSubmitting.value;
+      final isCapturing = controller.isCapturing.value;
       final isOcrProcessing = controller.isOcrProcessing.value;
       final phase = controller.capturePhase.value;
       final bytes = controller.imageBytes.value;
@@ -61,9 +62,35 @@ class CaptureEvidenceScreen extends GetView<CaptureController> {
               ),
             Expanded(
               child: switch (phase) {
-                CaptureUiPhase.camera => DocumentCameraPreview(
-                    key: controller.cameraPreviewKey,
-                    showDocumentFrame: controller.usesAutoCrop,
+                CaptureUiPhase.camera => Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      DocumentCameraPreview(
+                        key: controller.cameraPreviewKey,
+                        showDocumentFrame: controller.usesAutoCrop,
+                      ),
+                      if (isCapturing)
+                        const ColoredBox(
+                          color: Color(0x99000000),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(color: Colors.white),
+                                SizedBox(height: SvSpacing.sm),
+                                Text(
+                                  'Đang xử lý ảnh...',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 CaptureUiPhase.cropping when rawBytes != null =>
                   _CaptureCroppingPanel(
@@ -92,6 +119,7 @@ class CaptureEvidenceScreen extends GetView<CaptureController> {
                     showOcrReview: showOcrReview,
                     isSubmitting: isSubmitting,
                     isOcrProcessing: isOcrProcessing,
+                    isCapturing: isCapturing,
                     confirmLabel: confirmLabel,
                   ),
                 ),
@@ -110,6 +138,7 @@ class CaptureEvidenceScreen extends GetView<CaptureController> {
                   showOcrReview: showOcrReview,
                   isSubmitting: isSubmitting,
                   isOcrProcessing: isOcrProcessing,
+                  isCapturing: isCapturing,
                   confirmLabel: confirmLabel,
                 ),
               ),
@@ -146,6 +175,7 @@ class _CaptureBottomPanel extends StatelessWidget {
   final bool showOcrReview;
   final bool isSubmitting;
   final bool isOcrProcessing;
+  final bool isCapturing;
   final String confirmLabel;
 
   const _CaptureBottomPanel({
@@ -154,6 +184,7 @@ class _CaptureBottomPanel extends StatelessWidget {
     required this.showOcrReview,
     required this.isSubmitting,
     required this.isOcrProcessing,
+    required this.isCapturing,
     required this.confirmLabel,
   });
 
@@ -219,6 +250,7 @@ class _CaptureBottomPanel extends StatelessWidget {
           shareholder: controller.shareholder,
           phase: phase,
           isSubmitting: isSubmitting || isOcrProcessing,
+          isCapturing: isCapturing,
           onCapture: controller.pickImage,
           onRetake: controller.retake,
           onApplyCrop: controller.applyCrop,

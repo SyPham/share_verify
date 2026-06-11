@@ -14,6 +14,7 @@ class CaptureOverlayCard extends StatelessWidget {
   final VoidCallback? onCapture;
   final VoidCallback? onApplyCrop;
   final bool isSubmitting;
+  final bool isCapturing;
   final bool confirmEnabled;
   final String? confirmLabel;
   final String identityType;
@@ -27,6 +28,7 @@ class CaptureOverlayCard extends StatelessWidget {
     this.onCapture,
     this.onApplyCrop,
     this.isSubmitting = false,
+    this.isCapturing = false,
     this.confirmEnabled = true,
     this.confirmLabel,
     this.identityType = 'CCCD',
@@ -58,9 +60,9 @@ class CaptureOverlayCard extends StatelessWidget {
   Widget _buildActions() {
     return switch (phase) {
       CaptureUiPhase.camera => SvPrimaryButton(
-          label: 'Chụp ảnh',
-          icon: Icons.camera_alt,
-          onPressed: onCapture,
+          label: isCapturing ? 'Đang chụp...' : 'Chụp ảnh',
+          icon: isCapturing ? null : Icons.camera_alt,
+          onPressed: isCapturing ? null : onCapture,
         ),
       CaptureUiPhase.cropping => Row(
           children: [

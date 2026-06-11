@@ -97,7 +97,6 @@
 				44F36A685A8B048B285F22B1 /* Pods-RunnerTests.release.xcconfig */,
 				E718E6632AD9D88CCDD41486 /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -226,7 +225,6 @@
 					};
 					97C146ED1CF9000F007C117D = {
 						CreatedOnToolsVersion = 7.3.1;
-						DevelopmentTeam = 4QJ9ZTJW52;
 						LastSwiftMigration = 1100;
 						ProvisioningStyle = Automatic;
 					};

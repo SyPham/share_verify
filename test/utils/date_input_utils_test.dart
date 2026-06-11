@@ -19,6 +19,11 @@ void main() {
     test('converts year only to 01/01/yyyy', () {
       expect(formatDateOfBirthDisplay('1985'), '01/01/1985');
     });
+
+    test('converts single-digit day and month', () {
+      expect(formatDateOfBirthDisplay('7/9/1983'), '07/09/1983');
+      expect(formatDateOfBirthDisplay('07-09-1983'), '07/09/1983');
+    });
   });
 
   group('DdMmYyyyInputFormatter', () {

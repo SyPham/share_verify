@@ -83,6 +83,7 @@ class CaptureController extends GetxController {
 
   final capturePhase = CaptureUiPhase.camera.obs;
   final hasCaptured = false.obs;
+  final isCapturing = false.obs;
   final rawImageBytes = Rxn<Uint8List>();
   final imageBytes = Rxn<Uint8List>();
   final isSubmitting = false.obs;
@@ -188,6 +189,14 @@ class CaptureController extends GetxController {
     }
   }
 
+  /// CMND: OCR trên ảnh gốc (đủ vùng ngày sinh); loại khác dùng ảnh đã crop.
+  Uint8List? get _ocrInputBytes {
+    if (identityType.toUpperCase() == 'CMND') {
+      return rawImageBytes.value ?? imageBytes.value;
+    }
+    return imageBytes.value;
+  }
+
   /// Ảnh lưu làm chứng cứ — CMND dùng ảnh gốc chưa crop; loại khác dùng ảnh đã crop.
   Uint8List? get _evidencePhotoBytes {
     if (identityType.toUpperCase() == 'CMND') {
@@ -200,7 +209,10 @@ class CaptureController extends GetxController {
       identityType.toUpperCase() == 'CMND' ? 100 : 92;
 
   Future<void> pickImage() async {
+    if (isCapturing.value) return;
+
     errorMessage.value = null;
+    isCapturing.value = true;
     try {
       Uint8List? bytes;
 
@@ -227,14 +239,20 @@ class CaptureController extends GetxController {
 
       if (usesAutoCrop) {
         final cropped = await _autoCropForOcr(bytes);
-        await _applyCapturedImage(cropped);
+        imageBytes.value = cropped;
+        hasCaptured.value = true;
         capturePhase.value = CaptureUiPhase.review;
+        isCapturing.value = false;
+        await _finishCapturedImageProcessing();
       } else {
+        isCapturing.value = false;
         capturePhase.value = CaptureUiPhase.cropping;
       }
       errorMessage.value = null;
     } catch (error) {
       errorMessage.value = 'Không chụp được ảnh. Thử lại sau vài giây.';
+    } finally {
+      isCapturing.value = false;
     }
   }
 
@@ -267,17 +285,13 @@ class CaptureController extends GetxController {
   }
 
   Future<void> onCropCompleted(Uint8List bytes) async {
-    await _applyCapturedImage(bytes);
-    capturePhase.value = CaptureUiPhase.review;
-  }
-
-  void onCropFailed(Object error) {
-    errorMessage.value = 'Không crop được ảnh. Thử chụp lại.';
-  }
-
-  Future<void> _applyCapturedImage(Uint8List bytes) async {
     imageBytes.value = bytes;
     hasCaptured.value = true;
+    capturePhase.value = CaptureUiPhase.review;
+    await _finishCapturedImageProcessing();
+  }
+
+  Future<void> _finishCapturedImageProcessing() async {
     if (intent == CaptureIntent.qrPrefilled) {
       _applyQrPrefillToControllers();
       return;
@@ -287,10 +301,14 @@ class CaptureController extends GetxController {
     }
   }
 
+  void onCropFailed(Object error) {
+    errorMessage.value = 'Không crop được ảnh. Thử chụp lại.';
+  }
+
   Future<void> rerunOcr() => _runOcrPreview();
 
   Future<void> _runOcrPreview() async {
-    final bytes = imageBytes.value;
+    final bytes = _ocrInputBytes;
     if (bytes == null) return;
 
     isOcrProcessing.value = true;
@@ -309,9 +327,7 @@ class CaptureController extends GetxController {
       if (identityType.toUpperCase() == 'PASSPORT') {
         cmndNoController.text = ocr.legacyIdentityNo ?? '';
       }
-      if (ocr.birthDate != null && ocr.birthDate!.isNotEmpty) {
-        dateOfBirthController.text = formatDateOfBirthForInput(ocr.birthDate);
-      }
+      _applyBirthDateFromOcr(ocr.birthDate);
       ocrIdConfidence.value = ocr.idConfidence;
       ocrNameConfidence.value = ocr.nameConfidence;
 
@@ -334,6 +350,7 @@ class CaptureController extends GetxController {
   void retake() {
     capturePhase.value = CaptureUiPhase.camera;
     hasCaptured.value = false;
+    isCapturing.value = false;
     rawImageBytes.value = null;
     imageBytes.value = null;
     identityNoController.clear();
@@ -375,7 +392,7 @@ class CaptureController extends GetxController {
     errorMessage.value = null;
 
     try {
-      final ocrBytes = imageBytes.value ?? evidenceBytes;
+      final ocrBytes = _ocrInputBytes ?? evidenceBytes;
       final upload = await _travelSupportRepository.uploadPhoto(
         bytes: evidenceBytes,
         fileName: 'identity_${identityType.toLowerCase()}.jpg',
@@ -404,7 +421,7 @@ class CaptureController extends GetxController {
           if (receiverName.isEmpty) {
             receiverName = ocr.fullName ?? prefillName ?? '';
           }
-          birthDateValue ??= ocr.birthDate;
+          birthDateValue ??= _formatBirthDateFromOcr(ocr.birthDate);
           if (identityType.toUpperCase() == 'PASSPORT' &&
               cmndNoController.text.trim().isEmpty) {
             cmndNoController.text = ocr.legacyIdentityNo ?? '';
@@ -502,6 +519,19 @@ class CaptureController extends GetxController {
   String? get _dateOfBirthValue {
     final value = dateOfBirthController.text.trim();
     return value.isEmpty ? null : value;
+  }
+
+  void _applyBirthDateFromOcr(String? birthDate) {
+    final formatted = _formatBirthDateFromOcr(birthDate);
+    if (formatted != null) {
+      dateOfBirthController.text = formatted;
+    }
+  }
+
+  String? _formatBirthDateFromOcr(String? birthDate) {
+    if (birthDate == null || birthDate.trim().isEmpty) return null;
+    final formatted = formatDateOfBirthForInput(birthDate);
+    return formatted.isEmpty ? null : formatted;
   }
 
   /// Returns true when confirm should proceed (pop screen).

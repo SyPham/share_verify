@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
 import 'package:share_verify/core/network/api_client.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
+import 'package:share_verify/core/utils/ip_input_utils.dart';
 
 class SettingsController extends GetxController {
   final AppConfigService _appConfigService;
@@ -61,7 +62,7 @@ class SettingsController extends GetxController {
 
   Future<void> save() async {
     final ip = ipController.text.trim();
-    if (ip.isNotEmpty && !_isValidIpv4(ip)) {
+    if (ip.isNotEmpty && !isValidIpv4(ip)) {
       _setStatus('Địa chỉ IP không hợp lệ', isError: true);
       return;
     }
@@ -87,7 +88,7 @@ class SettingsController extends GetxController {
 
   Future<void> testConnection() async {
     final ip = ipController.text.trim();
-    if (ip.isNotEmpty && !_isValidIpv4(ip)) {
+    if (ip.isNotEmpty && !isValidIpv4(ip)) {
       _setStatus('Địa chỉ IP không hợp lệ', isError: true);
       return;
     }
@@ -115,7 +116,7 @@ class SettingsController extends GetxController {
 
   Future<void> testOcrConnection() async {
     final ip = ipController.text.trim();
-    if (ip.isNotEmpty && !_isValidIpv4(ip)) {
+    if (ip.isNotEmpty && !isValidIpv4(ip)) {
       _setStatus('Địa chỉ IP không hợp lệ', isError: true);
       return;
     }
@@ -149,14 +150,4 @@ class SettingsController extends GetxController {
     isStatusError.value = isError;
   }
 
-  bool _isValidIpv4(String ip) {
-    final parts = ip.split('.');
-    if (parts.length != 4) return false;
-
-    for (final part in parts) {
-      final value = int.tryParse(part);
-      if (value == null || value < 0 || value > 255) return false;
-    }
-    return true;
-  }
 }

@@ -130,6 +130,7 @@ class OcrService {
       score += 10;
       score += _diacriticCount(result.fullName!);
     }
+    if (result.hasBirthDate) score += 5;
     return score;
   }
 
@@ -215,7 +216,59 @@ class OcrService {
       identityNo: identityNo,
     );
 
-    return OcrResult(identityNo: identityNo, fullName: fullName);
+    return OcrResult(
+      identityNo: identityNo,
+      fullName: fullName,
+      birthDate: _extractBirthDate(normalized, docType: docType),
+    );
+  }
+
+  static String? _extractBirthDate(String text, {required String docType}) {
+    final lines = _normalizedLines(text);
+
+    for (var i = 0; i < lines.length; i++) {
+      final line = lines[i];
+      final labeled = RegExp(
+        r'(?:Sinh\s*ngày|Sinh\s*ngay|Ngày\s*sinh|Ngay\s*sinh|Date\s*of\s*birth)\s*[:\.]?\s*(.*)$',
+        caseSensitive: false,
+      ).firstMatch(line);
+
+      if (labeled != null) {
+        final inline = labeled.group(1)?.trim() ?? '';
+        final inlineDate = _normalizeBirthDateToken(inline);
+        if (inlineDate != null) return inlineDate;
+
+        if (i + 1 < lines.length) {
+          final nextDate = _normalizeBirthDateToken(lines[i + 1]);
+          if (nextDate != null) return nextDate;
+        }
+        continue;
+      }
+
+      if (_looksLikeBirthDateLine(line, docType: docType)) {
+        final parsed = _normalizeBirthDateToken(line);
+        if (parsed != null) return parsed;
+      }
+    }
+
+    return null;
+  }
+
+  static bool _looksLikeBirthDateLine(String line, {required String docType}) {
+    if (_normalizeId(line, docType: docType) != null) return false;
+    return RegExp(r'\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4}').hasMatch(line) ||
+        RegExp(r'^\d{4}$').hasMatch(line.trim());
+  }
+
+  static String? _normalizeBirthDateToken(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return null;
+
+    if (RegExp(r'^\d{4}$').hasMatch(trimmed)) return trimmed;
+
+    final match =
+        RegExp(r'(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})').firstMatch(trimmed);
+    return match?.group(1);
   }
 
   static String? _extractIdentityNo(String text, {required String docType}) {

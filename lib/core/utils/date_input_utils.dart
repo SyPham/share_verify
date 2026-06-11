@@ -16,6 +16,18 @@ String? formatDateOfBirthDisplay(String? value) {
     return '${dmy.group(1)}/${dmy.group(2)}/${dmy.group(3)}';
   }
 
+  final dmyFlex =
+      RegExp(r'^(\d{1,2})[\-./](\d{1,2})[\-./](\d{2,4})$').firstMatch(trimmed);
+  if (dmyFlex != null) {
+    final day = dmyFlex.group(1)!.padLeft(2, '0');
+    final month = dmyFlex.group(2)!.padLeft(2, '0');
+    var year = dmyFlex.group(3)!;
+    if (year.length == 2) {
+      year = (int.parse(year) >= 50 ? '19' : '20') + year;
+    }
+    return '$day/$month/$year';
+  }
+
   final ymd = RegExp(r'^(\d{4})[\-./](\d{2})[\-./](\d{2})$').firstMatch(trimmed);
   if (ymd != null) {
     return '${ymd.group(3)}/${ymd.group(2)}/${ymd.group(1)}';

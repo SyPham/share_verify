@@ -146,6 +146,32 @@ Sinh ngay: 15/08/1985
 
       expect(result.identityNo, '123456789');
       expect(result.fullName, 'TRAN VAN MINH');
+      expect(result.birthDate, '15/08/1985');
+    });
+
+    test('extracts CMND birth date from dashed label', () {
+      const text = '''
+SỐ 145064321
+Họ tên: NGUYỄN BẢO NGỌC
+Sinh ngày 07-09-1983
+''';
+
+      final result = OcrService.parseRecognizedText(text, docType: 'CMND');
+
+      expect(result.birthDate, '07-09-1983');
+    });
+
+    test('extracts CMND birth year on next line after label', () {
+      const text = '''
+SỐ 174324001
+Họ tên: NGUYỄN HOÀI LINH
+Sinh ngày
+1990
+''';
+
+      final result = OcrService.parseRecognizedText(text, docType: 'CMND');
+
+      expect(result.birthDate, '1990');
     });
 
     test('extracts CMND split name across two lines', () {

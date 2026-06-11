@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:share_verify/core/models/ocr_result.dart';
+import 'package:share_verify/core/utils/date_input_utils.dart';
 
 void main() {
   test('fromApiResponse parses confidence fields', () {
@@ -49,6 +50,20 @@ void main() {
     expect(result.identityNo, 'B4815163');
     expect(result.legacyIdentityNo, '012977636');
     expect(result.fullName, 'NGÔ THỊ THU HÀ');
+  });
+
+  test('fromApiResponse parses CMND birthDate', () {
+    final result = OcrResult.fromApiResponse(
+      {
+        'idNumber': '145064321',
+        'fullName': 'NGUYỄN BẢO NGỌC',
+        'birthDate': '07-09-1983',
+      },
+      docType: 'CMND',
+    );
+
+    expect(result.birthDate, '07-09-1983');
+    expect(formatDateOfBirthForInput(result.birthDate), '07/09/1983');
   });
 
   test('hasLowIdConfidence uses threshold 0.65', () {
