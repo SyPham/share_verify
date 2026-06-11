@@ -143,7 +143,6 @@ class OcrService {
     _textRecognizerInstance = null;
   }
 
-  @visibleForTesting
   static OcrResult parseRecognizedText(
     String text, {
     required String docType,
