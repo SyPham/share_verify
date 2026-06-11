@@ -46,4 +46,30 @@ class VisionTextLayout {
 
     return lines.join('\n');
   }
+
+  /// Vùng header phải — thường chứa số hộ chiếu trên trang thông tin VN.
+  static const passportNumberRegion = (x: 0.45, y: 0.0, w: 0.55, h: 0.35);
+
+  /// Vùng giữa-trái — họ tên và ngày sinh.
+  static const passportIdentityRegion = (x: 0.0, y: 0.2, w: 0.65, h: 0.55);
+
+  /// Vùng cột phải giữa — GCMND / CMND.
+  static const passportLegacyIdRegion = (x: 0.45, y: 0.25, w: 0.55, h: 0.35);
+
+  static String blocksInRegion(
+    List<TextBlock> blocks, {
+    required double x,
+    required double y,
+    required double w,
+    required double h,
+  }) {
+    final filtered = blocks.where((block) {
+      final box = block.boundingBox;
+      return box.x < x + w &&
+          box.x + box.width > x &&
+          box.y < y + h &&
+          box.y + box.height > y;
+    }).toList();
+    return blocksToLines(filtered);
+  }
 }
