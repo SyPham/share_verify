@@ -6,13 +6,22 @@ enum _SvAppBarVariant { verification, dashboard }
 class SvAppBar extends StatelessWidget implements PreferredSizeWidget {
   final _SvAppBarVariant _variant;
   final String? clockText;
+  final VoidCallback? onBack;
+  final VoidCallback? onOpenSettings;
 
-  const SvAppBar.verification({super.key, required this.clockText})
-      : _variant = _SvAppBarVariant.verification;
+  const SvAppBar.verification({
+    super.key,
+    required this.clockText,
+    this.onBack,
+    this.onOpenSettings,
+  }) : _variant = _SvAppBarVariant.verification;
 
-  const SvAppBar.dashboard({super.key})
-      : _variant = _SvAppBarVariant.dashboard,
-        clockText = null;
+  const SvAppBar.dashboard({
+    super.key,
+    this.onOpenSettings,
+  })  : _variant = _SvAppBarVariant.dashboard,
+        clockText = null,
+        onBack = null;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -26,24 +35,29 @@ class SvAppBar extends StatelessWidget implements PreferredSizeWidget {
       scrolledUnderElevation: 0,
       leading: _variant == _SvAppBarVariant.dashboard
           ? IconButton(
-              icon: const Icon(Icons.menu, color: SvPalette.onSurface),
-              onPressed: () {},
+              icon: const Icon(Icons.settings_outlined, color: SvPalette.onSurface),
+              onPressed: onOpenSettings,
             )
-          : Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: Icon(
-                Icons.corporate_fare,
-                color: SvPalette.primary,
-                size: 28,
-              ),
-            ),
+          : onBack != null
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back, color: SvPalette.onSurface),
+                  onPressed: onBack,
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(
+                    Icons.corporate_fare,
+                    color: SvPalette.primary,
+                    size: 28,
+                  ),
+                ),
       leadingWidth: _variant == _SvAppBarVariant.dashboard ? null : 48,
       title: _variant == _SvAppBarVariant.verification
           ? Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'ĐẠI HỘI CỔ ĐÔNG 2024',
+                  'ĐẠI HỘI CỔ ĐÔNG 2026',
                   style: theme.textTheme.labelLarge?.copyWith(
                     color: SvPalette.primary,
                     fontWeight: FontWeight.w700,
@@ -69,12 +83,12 @@ class SvAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         IconButton(
           icon: Icon(
-            Icons.account_circle,
+            Icons.settings,
             color: _variant == _SvAppBarVariant.dashboard
                 ? SvPalette.primary
                 : SvPalette.onSurfaceVariant,
           ),
-          onPressed: () {},
+          onPressed: onOpenSettings,
         ),
       ],
     );

@@ -104,18 +104,25 @@ class SuccessScreen extends StatelessWidget {
                 ),
               ),
               SvPrimaryButton(
-                label: 'Kiểm Tra Người Tiếp Theo',
-                onPressed: () {
+                label: 'Xử lý người tiếp theo',
+                icon: Icons.restart_alt,
+                onPressed: () async {
                   if (Get.isRegistered<VerificationController>()) {
-                    Get.find<VerificationController>().resetSelection();
+                    await Get.find<VerificationController>().processNextPerson();
+                  } else {
+                    await Get.offAllNamed('/shell');
                   }
-                  Get.offAllNamed('/shell');
                 },
               ),
               const SizedBox(height: SvSpacing.sm),
               SvOutlinedButton(
                 label: 'Về Trang Chủ',
-                onPressed: () => Get.offAllNamed('/shell'),
+                onPressed: () async {
+                  if (Get.isRegistered<VerificationController>()) {
+                    Get.find<VerificationController>().resetSelection();
+                  }
+                  await Get.offAllNamed('/shell');
+                },
               ),
             ],
           ),

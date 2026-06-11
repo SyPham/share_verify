@@ -8,8 +8,14 @@ build/
 *.iml
 .idea/
 
+# FVM
+.fvm/
+
 # Worktrees
 .worktrees/
 
 # OS
 .DS_Store
+
+# FVM Version Cache
+.fvm/

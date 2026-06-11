@@ -11,10 +11,16 @@ class SvStatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isReceived = status == PaymentStatus.received;
+    final backgroundColor =
+        isReceived ? theme.colorScheme.error : SvPalette.tertiary;
+    final foregroundColor =
+        isReceived ? theme.colorScheme.onError : SvPalette.onTertiary;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: SvPalette.tertiary,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
       ),
       child: Column(
@@ -23,14 +29,14 @@ class SvStatusBadge extends StatelessWidget {
           Text(
             'TRẠNG THÁI',
             style: theme.textTheme.labelLarge?.copyWith(
-              color: SvPalette.onTertiary.withValues(alpha: 0.8),
+              color: foregroundColor.withValues(alpha: 0.8),
               fontSize: 14,
             ),
           ),
           Text(
             status.verificationBadgeLabel,
             style: theme.textTheme.headlineSmall?.copyWith(
-              color: SvPalette.onTertiary,
+              color: foregroundColor,
               fontWeight: FontWeight.w800,
               fontSize: 20,
             ),

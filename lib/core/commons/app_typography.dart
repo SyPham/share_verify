@@ -22,10 +22,22 @@ class SvTypography {
           color: SvPalette.onSurface,
         ),
         bodyLarge: GoogleFonts.beVietnamPro(
-          fontSize: 18, height: 28 / 18, fontWeight: FontWeight.w400,
+          fontSize: 18,
+          height: 28 / 18,
+          fontWeight: FontWeight.w400,
+          color: SvPalette.onSurface,
         ),
         bodyMedium: GoogleFonts.beVietnamPro(
-          fontSize: 16, height: 24 / 16, fontWeight: FontWeight.w400,
+          fontSize: 16,
+          height: 24 / 16,
+          fontWeight: FontWeight.w400,
+          color: SvPalette.onSurface,
+        ),
+        bodySmall: GoogleFonts.beVietnamPro(
+          fontSize: 14,
+          height: 20 / 14,
+          fontWeight: FontWeight.w400,
+          color: SvPalette.onSurfaceVariant,
         ),
         labelLarge: GoogleFonts.beVietnamPro(
           fontSize: 14, height: 20 / 14, fontWeight: FontWeight.w600,

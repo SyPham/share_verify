@@ -32,6 +32,16 @@ class SvAppTheme {
     return base.copyWith(
       scaffoldBackgroundColor: SvPalette.background,
       textTheme: SvTypography.textTheme(base.textTheme),
+      inputDecorationTheme: const InputDecorationTheme(
+        labelStyle: TextStyle(color: SvPalette.onSurfaceVariant),
+        hintStyle: TextStyle(color: SvPalette.outline),
+        floatingLabelStyle: TextStyle(color: SvPalette.primary),
+      ),
+      textSelectionTheme: const TextSelectionThemeData(
+        cursorColor: SvPalette.primary,
+        selectionColor: Color(0x4D5E215D),
+        selectionHandleColor: SvPalette.primary,
+      ),
     );
   }
 }

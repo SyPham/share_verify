@@ -13,4 +13,13 @@ void main() {
     expect(find.text('CHƯA NHẬN'), findsOneWidget);
     expect(find.text('TRẠNG THÁI'), findsOneWidget);
   });
+
+  testWidgets('shows ĐÃ NHẬN for received status', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: SvStatusBadge(status: PaymentStatus.received)),
+      ),
+    );
+    expect(find.text('ĐÃ NHẬN'), findsOneWidget);
+  });
 }

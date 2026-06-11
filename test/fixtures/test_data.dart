@@ -3,9 +3,7 @@ import 'package:share_verify/core/models/dashboard_stats.dart';
 import 'package:share_verify/core/models/payment_status.dart';
 import 'package:share_verify/core/models/shareholder.dart';
 
-class MockData {
-  static const eventTitle = 'ĐẠI HỘI CỔ ĐÔNG 2024';
-
+class TestData {
   static final shareholders = <Shareholder>[
     const Shareholder(
       code: 'SH0001',
@@ -26,13 +24,6 @@ class MockData {
       fullName: 'Trần Thị C',
       idNumber: '001234567892',
       shares: 8000,
-      status: PaymentStatus.received,
-    ),
-    const Shareholder(
-      code: 'SH0004',
-      fullName: 'Lê Hoàng D',
-      idNumber: '001234567893',
-      shares: 3000,
       status: PaymentStatus.received,
     ),
   ];
@@ -56,12 +47,6 @@ class MockData {
       timeLabel: '08:35',
       statusLabel: 'Thành công',
     ),
-    ActivityItem(
-      shareholderCode: 'SH0004',
-      fullName: 'Lê Hoàng D',
-      timeLabel: '08:12',
-      statusLabel: 'Thành công',
-    ),
   ];
 
   static Shareholder? findByIdNumber(String idNumber) {
@@ -72,4 +57,19 @@ class MockData {
     }
     return null;
   }
+
+  static Shareholder? findByMcd(String mcd) {
+    final normalized = switch (mcd) {
+      'MCD001' => 'SH0001',
+      _ => mcd,
+    };
+    try {
+      return shareholders.firstWhere((s) => s.code == normalized);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static const sampleCccdOcrText =
+      'CĂN CƯỚC CÔNG DÂN\nNguyễn Văn A\nSố: 001234567890';
 }

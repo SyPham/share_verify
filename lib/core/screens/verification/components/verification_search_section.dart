@@ -39,8 +39,14 @@ class VerificationSearchSection extends StatelessWidget {
             controller: controller,
             focusNode: focusNode,
             onChanged: onIdNumberChanged,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: SvPalette.onSurface,
+            ),
             decoration: InputDecoration(
               hintText: 'Nhập CCCD / CMND / Passport',
+              hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                color: SvPalette.onSurfaceVariant,
+              ),
               filled: true,
               fillColor: SvPalette.surface,
               border: OutlineInputBorder(
@@ -62,7 +68,7 @@ class VerificationSearchSection extends StatelessWidget {
           ),
           const SizedBox(height: SvSpacing.sm),
           SvPrimaryButton(
-            label: 'Tìm Kiếm',
+            label: isSearching ? 'Đang tìm...' : 'Xác nhận số giấy tờ',
             onPressed: isSearching ? null : onSearch,
           ),
         ],
