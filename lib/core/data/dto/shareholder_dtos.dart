@@ -107,6 +107,17 @@ class TravelSupportInfoDto {
   });
 
   factory TravelSupportInfoDto.fromJson(Map<String, dynamic> json) {
+    final parsed = tryFromJson(json);
+    if (parsed == null) {
+      throw FormatException('Invalid travelSupport payload');
+    }
+    return parsed;
+  }
+
+  static TravelSupportInfoDto? tryFromJson(Map<String, dynamic> json) {
+    final receiveTime = _parseDateTime(json['receiveTime']);
+    if (receiveTime == null) return null;
+
     return TravelSupportInfoDto(
       receiverName: json['receiverName'] as String?,
       receiverIdentityNo: json['receiverIdentityNo'] as String?,
@@ -116,10 +127,17 @@ class TravelSupportInfoDto {
       proxyIdentityNo: json['proxyIdentityNo'] as String?,
       proxyIdentityType: json['proxyIdentityType'] as String?,
       receiveAmount: json['receiveAmount'] as num? ?? 0,
-      receiveTime: DateTime.parse(json['receiveTime'] as String),
+      receiveTime: receiveTime,
       photoPath: json['photoPath'] as String?,
       operatorName: json['operatorName'] as String?,
     );
+  }
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String && value.isNotEmpty) return DateTime.tryParse(value);
+    return null;
   }
 }
 
@@ -152,7 +170,7 @@ class ShareholderDetailDto {
       personId: (json['personId'] as num?)?.toInt(),
       allowanceReceived: json['allowanceReceived'] as bool? ?? false,
       travelSupport: travelSupportJson is Map<String, dynamic>
-          ? TravelSupportInfoDto.fromJson(travelSupportJson)
+          ? TravelSupportInfoDto.tryFromJson(travelSupportJson)
           : null,
     );
   }

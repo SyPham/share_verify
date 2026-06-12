@@ -6,7 +6,7 @@ enum SvCardVariant { outlined, primaryAccent }
 
 class SvCard extends StatelessWidget {
   final Widget child;
-  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry padding;
   final SvCardVariant variant;
   final bool showShadow;
   final Color? backgroundColor;
@@ -14,7 +14,7 @@ class SvCard extends StatelessWidget {
   const SvCard({
     super.key,
     required this.child,
-    this.padding,
+    this.padding = const EdgeInsets.all(SvSpacing.cardPadding),
     this.variant = SvCardVariant.outlined,
     this.showShadow = true,
     this.backgroundColor,
@@ -47,7 +47,7 @@ class SvCard extends StatelessWidget {
         boxShadow: shadow,
       ),
       clipBehavior: Clip.antiAlias,
-      child: padding != null ? Padding(padding: padding!, child: child) : child,
+      child: Padding(padding: padding, child: child),
     );
   }
 }

@@ -70,17 +70,21 @@ class CaptureEvidenceScreen extends GetView<CaptureController> {
                         showDocumentFrame: controller.usesAutoCrop,
                       ),
                       if (isCapturing)
-                        const ColoredBox(
-                          color: Color(0x99000000),
+                        ColoredBox(
+                          color: const Color(0x99000000),
                           child: Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                CircularProgressIndicator(color: Colors.white),
-                                SizedBox(height: SvSpacing.sm),
+                                const CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(height: SvSpacing.sm),
                                 Text(
-                                  'Đang xử lý ảnh...',
-                                  style: TextStyle(
+                                  controller.usesAutoCrop
+                                      ? 'Đang xử lý CMND...'
+                                      : 'Đang xử lý ảnh...',
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 16,
                                     fontWeight: FontWeight.w500,
@@ -197,7 +201,6 @@ class _CaptureBottomPanel extends StatelessWidget {
           CaptureIdentityReviewFields(
             nameController: controller.receiverNameController,
             identityNoController: controller.identityNoController,
-            dateOfBirthController: controller.dateOfBirthController,
             cmndNoController: _showsLegacyCmndField(controller)
                 ? controller.cmndNoController
                 : null,
@@ -205,6 +208,7 @@ class _CaptureBottomPanel extends StatelessWidget {
             isOcrProcessing: isOcrProcessing,
             idConfidence: controller.ocrIdConfidence.value,
             nameConfidence: controller.ocrNameConfidence.value,
+            ocrRawText: controller.ocrRawText.value,
             fromQr: controller.isQrPrefilled,
             onRerunOcr: controller.isQrPrefilled ? null : controller.rerunOcr,
             onFieldEdited: controller.onIdentityFieldsEdited,

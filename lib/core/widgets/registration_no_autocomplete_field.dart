@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dart';
@@ -14,6 +15,7 @@ class RegistrationNoAutocompleteField extends StatefulWidget {
   final VoidCallback? onChanged;
   final TextStyle? style;
   final TextInputType keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   const RegistrationNoAutocompleteField({
     super.key,
@@ -25,6 +27,7 @@ class RegistrationNoAutocompleteField extends StatefulWidget {
     this.onChanged,
     this.style,
     this.keyboardType = TextInputType.text,
+    this.inputFormatters,
   });
 
   @override
@@ -230,6 +233,7 @@ class _RegistrationNoAutocompleteFieldState
           focusNode: _focusNode,
           enabled: widget.enabled,
           keyboardType: widget.keyboardType,
+          inputFormatters: widget.inputFormatters,
           onChanged: (_) => widget.onChanged?.call(),
           style: widget.style,
           decoration: decoration,

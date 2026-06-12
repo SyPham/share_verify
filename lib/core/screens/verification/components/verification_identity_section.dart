@@ -19,7 +19,6 @@ class VerificationIdentitySection extends GetView<VerificationController> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SvCard(
-          padding: const EdgeInsets.all(SvSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

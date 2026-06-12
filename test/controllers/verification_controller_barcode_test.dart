@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
@@ -66,6 +67,33 @@ void main() {
 
     expect(travelSupportRepository.receiveCallCount, 0);
     expect(c.errorMessage.value, contains('đã nhận phụ cấp'));
+    expect(c.selectedShareholder.value?.travelSupport, isNotNull);
+  });
+
+  testWidgets('onViewRecipientInfo opens sheet for received shareholder',
+      (tester) async {
+    final c = createController();
+    await c.setIdentityVerification(completeIdentity);
+    await c.onBarcodeScanned('SH0002');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () => c.onViewRecipientInfo(context),
+              child: const Text('View'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('View'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Thông tin người nhận phụ cấp'), findsOneWidget);
+    expect(find.text('Nguyễn Văn B'), findsWidgets);
   });
 
   test('auto-receive sends proxy fields when attendance is proxy', () async {

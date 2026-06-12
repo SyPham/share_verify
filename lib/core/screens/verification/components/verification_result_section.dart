@@ -29,11 +29,12 @@ class VerificationResultSection extends StatelessWidget {
     final theme = Theme.of(context);
     return SvCard(
       variant: SvCardVariant.primaryAccent,
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.all(SvSpacing.md),
+            padding: const EdgeInsets.all(SvSpacing.cardPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -126,8 +127,8 @@ class VerificationResultSection extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(
-              horizontal: SvSpacing.md,
-              vertical: SvSpacing.sm,
+              horizontal: SvSpacing.cardPadding,
+              vertical: SvSpacing.xs,
             ),
             color: SvPalette.surfaceContainerHigh,
             child: Row(

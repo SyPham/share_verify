@@ -8,7 +8,6 @@ import 'package:share_verify/core/controllers/dashboard_controller.dart';
 import 'package:share_verify/core/data/dto/travel_support_dtos.dart';
 import 'package:share_verify/core/models/attendance_type.dart';
 import 'package:share_verify/core/models/capture_route_args.dart';
-import 'package:share_verify/core/utils/date_input_utils.dart';
 import 'package:share_verify/core/utils/identity_type_utils.dart';
 import 'package:share_verify/core/models/crop_aspect_mode.dart';
 import 'package:share_verify/core/models/identity_verification.dart';
@@ -17,6 +16,7 @@ import 'package:share_verify/core/models/shareholder.dart';
 import 'package:share_verify/core/network/api_client.dart';
 import 'package:share_verify/core/repositories/travel_support_repository.dart';
 import 'package:share_verify/core/services/ocr_service.dart';
+import 'package:share_verify/core/utils/ocr_debug_log.dart';
 import 'package:share_verify/core/utils/camera_image_crop.dart';
 import 'package:share_verify/core/widgets/document_camera_preview.dart';
 
@@ -47,7 +47,6 @@ class CaptureController extends GetxController {
     CaptureIntent? intentOverride,
     String? prefillNameOverride,
     String? prefillIdentityNoOverride,
-    String? prefillDateOfBirthOverride,
     String? prefillCmndNoOverride,
   })  : _travelSupportRepository =
             travelSupportRepository ?? Get.find<TravelSupportRepository>(),
@@ -59,7 +58,6 @@ class CaptureController extends GetxController {
         _intentOverride = intentOverride,
         _prefillNameOverride = prefillNameOverride,
         _prefillIdentityNoOverride = prefillIdentityNoOverride,
-        _prefillDateOfBirthOverride = prefillDateOfBirthOverride,
         _prefillCmndNoOverride = prefillCmndNoOverride;
 
   final CaptureRouteArgs? _routeArgsOverride;
@@ -69,7 +67,6 @@ class CaptureController extends GetxController {
   final CaptureIntent? _intentOverride;
   final String? _prefillNameOverride;
   final String? _prefillIdentityNoOverride;
-  final String? _prefillDateOfBirthOverride;
   final String? _prefillCmndNoOverride;
 
   late final Shareholder shareholder;
@@ -78,7 +75,6 @@ class CaptureController extends GetxController {
   late final CaptureIntent intent;
   String? prefillName;
   String? prefillIdentityNo;
-  String? prefillDateOfBirth;
   String? prefillCmndNo;
 
   final capturePhase = CaptureUiPhase.camera.obs;
@@ -93,10 +89,10 @@ class CaptureController extends GetxController {
   final identityUsageWarningShown = false.obs;
   final ocrIdConfidence = Rxn<double>();
   final ocrNameConfidence = Rxn<double>();
+  final ocrRawText = RxnString();
   final identityNoController = TextEditingController();
   final cmndNoController = TextEditingController();
   final receiverNameController = TextEditingController();
-  final dateOfBirthController = TextEditingController();
   final cameraPreviewKey = GlobalKey<DocumentCameraPreviewState>();
   final cropController = CropController();
   final cropAspectMode = CropAspectMode.free.obs;
@@ -125,7 +121,6 @@ class CaptureController extends GetxController {
       intent = routeArgs.intent;
       prefillName = routeArgs.prefillName;
       prefillIdentityNo = routeArgs.prefillIdentityNo;
-      prefillDateOfBirth = routeArgs.prefillDateOfBirth;
       prefillCmndNo = routeArgs.prefillCmndNo;
     } else if (_shareholderOverride != null) {
       shareholder = _shareholderOverride!;
@@ -134,7 +129,6 @@ class CaptureController extends GetxController {
       intent = _intentOverride ?? CaptureIntent.ocr;
       prefillName = _prefillNameOverride;
       prefillIdentityNo = _prefillIdentityNoOverride;
-      prefillDateOfBirth = _prefillDateOfBirthOverride;
       prefillCmndNo = _prefillCmndNoOverride;
     } else if (Get.arguments is Shareholder) {
       shareholder = Get.arguments as Shareholder;
@@ -150,9 +144,6 @@ class CaptureController extends GetxController {
     super.onInit();
     if (intent == CaptureIntent.qrPrefilled) {
       _applyQrPrefillToControllers();
-    } else if (prefillDateOfBirth != null && prefillDateOfBirth!.isNotEmpty) {
-      dateOfBirthController.text =
-          formatDateOfBirthForInput(prefillDateOfBirth);
     }
   }
 
@@ -161,7 +152,6 @@ class CaptureController extends GetxController {
     identityNoController.dispose();
     cmndNoController.dispose();
     receiverNameController.dispose();
-    dateOfBirthController.dispose();
     super.onClose();
   }
 
@@ -179,10 +169,6 @@ class CaptureController extends GetxController {
     }
     if (prefillName != null && prefillName!.isNotEmpty) {
       receiverNameController.text = prefillName!;
-    }
-    if (prefillDateOfBirth != null && prefillDateOfBirth!.isNotEmpty) {
-      dateOfBirthController.text =
-          formatDateOfBirthForInput(prefillDateOfBirth);
     }
     if (prefillCmndNo != null && prefillCmndNo!.isNotEmpty) {
       cmndNoController.text = prefillCmndNo!;
@@ -207,6 +193,14 @@ class CaptureController extends GetxController {
 
   int get _cameraFallbackQuality =>
       identityType.toUpperCase() == 'CMND' ? 100 : 92;
+
+  Future<void> _stopCameraPreview() async {
+    await cameraPreviewKey.currentState?.stopPreview();
+  }
+
+  Future<void> _resumeCameraPreview() async {
+    await cameraPreviewKey.currentState?.resumePreview();
+  }
 
   Future<void> pickImage() async {
     if (isCapturing.value) return;
@@ -238,6 +232,7 @@ class CaptureController extends GetxController {
       rawImageBytes.value = bytes;
 
       if (usesAutoCrop) {
+        await _stopCameraPreview();
         final cropped = await _autoCropForOcr(bytes);
         imageBytes.value = cropped;
         hasCaptured.value = true;
@@ -245,12 +240,16 @@ class CaptureController extends GetxController {
         isCapturing.value = false;
         await _finishCapturedImageProcessing();
       } else {
+        await _stopCameraPreview();
         isCapturing.value = false;
         capturePhase.value = CaptureUiPhase.cropping;
       }
       errorMessage.value = null;
     } catch (error) {
       errorMessage.value = 'Không chụp được ảnh. Thử lại sau vài giây.';
+      if (capturePhase.value == CaptureUiPhase.camera) {
+        await _resumeCameraPreview();
+      }
     } finally {
       isCapturing.value = false;
     }
@@ -311,6 +310,10 @@ class CaptureController extends GetxController {
     final bytes = _ocrInputBytes;
     if (bytes == null) return;
 
+    OcrDebugLog.message(
+      'Capture review OCR start · $identityType · ${bytes.length ~/ 1024}KB',
+    );
+
     isOcrProcessing.value = true;
     errorMessage.value = null;
 
@@ -327,9 +330,9 @@ class CaptureController extends GetxController {
       if (identityType.toUpperCase() == 'PASSPORT') {
         cmndNoController.text = ocr.legacyIdentityNo ?? '';
       }
-      _applyBirthDateFromOcr(ocr.birthDate);
       ocrIdConfidence.value = ocr.idConfidence;
       ocrNameConfidence.value = ocr.nameConfidence;
+      ocrRawText.value = ocr.rawText;
 
       if (!ocr.hasIdentityNo) {
         errorMessage.value =
@@ -342,6 +345,7 @@ class CaptureController extends GetxController {
       errorMessage.value =
           'OCR lỗi: ${ApiClient.messageFrom(error)}. Nhập tay thông tin bên dưới.';
       receiverNameController.text = prefillName ?? '';
+      ocrRawText.value = null;
     } finally {
       isOcrProcessing.value = false;
     }
@@ -356,11 +360,11 @@ class CaptureController extends GetxController {
     identityNoController.clear();
     cmndNoController.clear();
     receiverNameController.clear();
-    dateOfBirthController.clear();
     isOcrProcessing.value = false;
     errorMessage.value = null;
     ocrIdConfidence.value = null;
     ocrNameConfidence.value = null;
+    ocrRawText.value = null;
     _clearIdentityUsageWarning();
     if (intent == CaptureIntent.qrPrefilled) {
       _applyQrPrefillToControllers();
@@ -401,16 +405,13 @@ class CaptureController extends GetxController {
 
       String identityNo;
       String receiverName;
-      String? birthDateValue;
 
       if (intent == CaptureIntent.photoEvidenceOnly) {
         identityNo = prefillIdentityNo ?? '';
         receiverName = prefillName ?? '';
-        birthDateValue = _dateOfBirthValue ?? prefillDateOfBirth;
       } else {
         identityNo = identityNoController.text.trim();
         receiverName = receiverNameController.text.trim();
-        birthDateValue = _dateOfBirthValue;
 
         if (intent == CaptureIntent.ocr && identityNo.isEmpty) {
           final ocr = await _ocrService.extractIdentity(
@@ -421,7 +422,6 @@ class CaptureController extends GetxController {
           if (receiverName.isEmpty) {
             receiverName = ocr.fullName ?? prefillName ?? '';
           }
-          birthDateValue ??= _formatBirthDateFromOcr(ocr.birthDate);
           if (identityType.toUpperCase() == 'PASSPORT' &&
               cmndNoController.text.trim().isEmpty) {
             cmndNoController.text = ocr.legacyIdentityNo ?? '';
@@ -448,7 +448,6 @@ class CaptureController extends GetxController {
       final shouldProceed = await _handleIdentityUsageCheck(
         identityNo: identityNo,
         receiverName: receiverName,
-        birthDateValue: birthDateValue,
         legacyIdentityNo:
             legacyIdentityNo.isEmpty ? null : legacyIdentityNo,
       );
@@ -459,7 +458,6 @@ class CaptureController extends GetxController {
           identityNo: identityNo,
           identityType: identityType,
           receiverName: receiverName,
-          dateOfBirth: birthDateValue,
           legacyIdentityNo:
               legacyIdentityNo.isEmpty ? null : legacyIdentityNo,
           photoPath: photoPath,
@@ -516,29 +514,10 @@ class CaptureController extends GetxController {
     }
   }
 
-  String? get _dateOfBirthValue {
-    final value = dateOfBirthController.text.trim();
-    return value.isEmpty ? null : value;
-  }
-
-  void _applyBirthDateFromOcr(String? birthDate) {
-    final formatted = _formatBirthDateFromOcr(birthDate);
-    if (formatted != null) {
-      dateOfBirthController.text = formatted;
-    }
-  }
-
-  String? _formatBirthDateFromOcr(String? birthDate) {
-    if (birthDate == null || birthDate.trim().isEmpty) return null;
-    final formatted = formatDateOfBirthForInput(birthDate);
-    return formatted.isEmpty ? null : formatted;
-  }
-
   /// Returns true when confirm should proceed (pop screen).
   Future<bool> _handleIdentityUsageCheck({
     required String identityNo,
     required String receiverName,
-    String? birthDateValue,
     String? legacyIdentityNo,
   }) async {
     try {
@@ -546,7 +525,6 @@ class CaptureController extends GetxController {
         identityNo: identityNo,
         identityType: identityType,
         fullName: receiverName,
-        dateOfBirth: birthDateValue,
       );
 
       IdentityCheckResultDto result = primary;
@@ -555,9 +533,12 @@ class CaptureController extends GetxController {
           identityNo: legacyIdentityNo,
           identityType: inferLegacyIdentityType(legacyIdentityNo),
           fullName: receiverName,
-          dateOfBirth: birthDateValue,
         );
-        result = _mergeIdentityCheckResults(primary, legacy);
+        result = _mergeIdentityCheckResults(
+          primary,
+          legacy,
+          primaryIdentityType: identityType,
+        );
       }
 
       identityCheckResult.value = result;
@@ -582,9 +563,28 @@ class CaptureController extends GetxController {
 
   IdentityCheckResultDto _mergeIdentityCheckResults(
     IdentityCheckResultDto primary,
-    IdentityCheckResultDto legacy,
-  ) {
-    if (!primary.alreadyUsed) return legacy;
+    IdentityCheckResultDto legacy, {
+    String? primaryIdentityType,
+  }) {
+    if (!primary.alreadyUsed && legacy.alreadyUsed) {
+      final isCccdWithLegacy =
+          primaryIdentityType?.toUpperCase() == 'CCCD';
+      return IdentityCheckResultDto(
+        alreadyUsed: true,
+        usedForMcd: legacy.usedForMcd,
+        usedForMcds: legacy.usedForMcds,
+        receiverName: legacy.receiverName,
+        usedIdentityType: legacy.usedIdentityType,
+        usedIdentityNo: legacy.usedIdentityNo,
+        usedDateOfBirth: legacy.usedDateOfBirth,
+        receiveTime: legacy.receiveTime,
+        message: legacy.message ??
+            (isCccdWithLegacy
+                ? 'Số CMND đã được sử dụng. Số CCCD này coi như đã nhận phụ cấp.'
+                : null),
+      );
+    }
+
     if (!legacy.alreadyUsed) return primary;
 
     final mcds = <String>{

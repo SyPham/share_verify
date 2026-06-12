@@ -4,7 +4,7 @@ import 'package:share_verify/core/models/shareholder.dart';
 import 'package:share_verify/core/models/travel_support_info.dart';
 
 class ShareholderMapper {
-  static TravelSupportInfo? _mapTravelSupport(TravelSupportInfoDto? dto) {
+  static TravelSupportInfo? mapTravelSupport(TravelSupportInfoDto? dto) {
     if (dto == null) return null;
     return TravelSupportInfo(
       receiverName: dto.receiverName,
@@ -46,7 +46,7 @@ class ShareholderMapper {
           ? PaymentStatus.received
           : PaymentStatus.notReceived,
       personId: dto.personId,
-      travelSupport: _mapTravelSupport(dto.travelSupport),
+      travelSupport: mapTravelSupport(dto.travelSupport),
     );
   }
 }

@@ -17,7 +17,6 @@ class ProgressRingSection extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return SvCard(
-      padding: const EdgeInsets.all(SvSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

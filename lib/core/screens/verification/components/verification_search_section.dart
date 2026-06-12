@@ -24,7 +24,6 @@ class VerificationSearchSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SvCard(
-      padding: const EdgeInsets.all(SvSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
+import 'package:share_verify/core/widgets/identity_type_radio_group.dart';
 
 class VerificationProxyForm extends StatelessWidget {
   final String proxyPersonName;
@@ -9,8 +10,6 @@ class VerificationProxyForm extends StatelessWidget {
   final ValueChanged<String> onProxyPersonNameChanged;
   final ValueChanged<String> onProxyIdentityNoChanged;
   final ValueChanged<String> onProxyIdentityTypeChanged;
-
-  static const identityTypes = ['CCCD', 'CMND', 'PASSPORT'];
 
   const VerificationProxyForm({
     super.key,
@@ -70,24 +69,9 @@ class VerificationProxyForm extends StatelessWidget {
           ),
         ),
         const SizedBox(height: SvSpacing.sm),
-        DropdownButtonFormField<String>(
-          value: identityTypes.contains(proxyIdentityType)
-              ? proxyIdentityType
-              : identityTypes.first,
-          decoration: fieldDecoration.copyWith(
-            labelText: 'Loại giấy tờ',
-          ),
-          items: identityTypes
-              .map(
-                (type) => DropdownMenuItem(
-                  value: type,
-                  child: Text(type),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value != null) onProxyIdentityTypeChanged(value);
-          },
+        IdentityTypeRadioGroup(
+          value: proxyIdentityType,
+          onChanged: onProxyIdentityTypeChanged,
         ),
       ],
     );

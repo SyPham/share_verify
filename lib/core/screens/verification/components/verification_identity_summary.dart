@@ -18,7 +18,6 @@ class VerificationIdentitySummary extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SvCard(
-      padding: const EdgeInsets.all(SvSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -47,15 +46,6 @@ class VerificationIdentitySummary extends StatelessWidget {
               icon: Icons.credit_card_outlined,
               label: legacyIdentityFieldLabel(identity.identityType),
               value: identity.legacyIdentityNo!,
-            ),
-          ],
-          if (identity.dateOfBirth != null &&
-              identity.dateOfBirth!.isNotEmpty) ...[
-            const SizedBox(height: SvSpacing.sm),
-            SvResultInfoRow(
-              icon: Icons.calendar_today_outlined,
-              label: 'Ngày sinh',
-              value: identity.dateOfBirth!,
             ),
           ],
         ],

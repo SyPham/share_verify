@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 /// Suy ra loại giấy tờ phụ (CMND/CCCD) từ số định danh trên hộ chiếu.
 String inferLegacyIdentityType(String identityNo) {
   final digits = identityNo.replaceAll(RegExp(r'\D'), '');
@@ -26,7 +28,7 @@ bool supportsRegistrationNoAutocomplete(
   if (legacy) {
     return upper == 'CCCD' || upper == 'PASSPORT';
   }
-  return upper == 'CCCD' || upper == 'CMND';
+  return upper == 'CCCD' || upper == 'CMND' || upper == 'PASSPORT';
 }
 
 String? registrationNoAutocompleteIdentityType(
@@ -40,5 +42,36 @@ String? registrationNoAutocompleteIdentityType(
   }
   if (upper == 'CMND') return 'CMND';
   if (upper == 'CCCD') return 'CCCD';
+  if (upper == 'PASSPORT') return 'PASSPORT';
   return null;
+}
+
+bool isNumericIdentityType(String identityType) {
+  final upper = identityType.toUpperCase();
+  return upper == 'CCCD' || upper == 'CMND';
+}
+
+final numericIdentityInputFormatters = [
+  FilteringTextInputFormatter.digitsOnly,
+];
+
+String compactIdentityNumber(String value) {
+  return value
+      .replaceAll(' ', '')
+      .replaceAll('-', '')
+      .replaceAll('.', '')
+      .toUpperCase();
+}
+
+bool isCompleteIdentityNumber(String identityType, String value) {
+  final upper = identityType.toUpperCase();
+  final compact = compactIdentityNumber(value);
+  final digits = value.replaceAll(RegExp(r'\D'), '');
+
+  return switch (upper) {
+    'CMND' => digits.length == 9,
+    'CCCD' => digits.length == 12,
+    'PASSPORT' => RegExp(r'^[A-HJ-NP-Z]\d{7,8}$').hasMatch(compact),
+    _ => false,
+  };
 }

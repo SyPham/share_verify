@@ -23,12 +23,52 @@ class DocumentCameraPreviewState extends State<DocumentCameraPreview>
   CameraController? _controller;
   String? _errorMessage;
   bool _isCapturing = false;
+  bool _previewStopped = false;
 
   final GlobalKey frameKey = GlobalKey();
   final GlobalKey previewKey = GlobalKey();
 
   bool get isInitialized =>
       _controller != null && _controller!.value.isInitialized;
+
+  bool get isPreviewStopped => _previewStopped;
+
+  /// Dừng live preview (giữ layout khung crop) — dùng khi CMND đang xử lý ảnh/OCR.
+  Future<void> stopPreview() async {
+    final controller = _controller;
+    if (controller == null ||
+        !controller.value.isInitialized ||
+        _previewStopped) {
+      return;
+    }
+
+    try {
+      await controller.pausePreview();
+    } catch (_) {
+      await _disposeController();
+    }
+
+    if (mounted) {
+      setState(() => _previewStopped = true);
+    }
+  }
+
+  Future<void> resumePreview() async {
+    if (!_previewStopped) return;
+
+    _previewStopped = false;
+    final controller = _controller;
+    if (controller != null && controller.value.isInitialized) {
+      try {
+        await controller.resumePreview();
+        if (mounted) setState(() {});
+        return;
+      } catch (_) {}
+    }
+
+    await _initCamera();
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
@@ -87,6 +127,7 @@ class DocumentCameraPreviewState extends State<DocumentCameraPreview>
       setState(() {
         _controller = controller;
         _errorMessage = null;
+        _previewStopped = false;
       });
     } catch (error) {
       if (!mounted) return;
@@ -176,7 +217,9 @@ class DocumentCameraPreviewState extends State<DocumentCameraPreview>
       children: [
         KeyedSubtree(
           key: previewKey,
-          child: CameraPreview(controller),
+          child: _previewStopped
+              ? const ColoredBox(color: Colors.black)
+              : CameraPreview(controller),
         ),
         if (widget.showDocumentFrame)
           DocumentScanFrame(

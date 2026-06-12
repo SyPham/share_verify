@@ -1,11 +1,13 @@
 import 'package:get/get.dart';
 import 'package:share_verify/core/data/sources/dashboard_remote_source.dart';
+import 'package:share_verify/core/data/sources/recipient_remote_source.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
 import 'package:share_verify/core/data/sources/photo_remote_source.dart';
 import 'package:share_verify/core/data/sources/shareholder_remote_source.dart';
 import 'package:share_verify/core/data/sources/travel_support_remote_source.dart';
 import 'package:share_verify/core/network/api_client.dart';
 import 'package:share_verify/core/repositories/dashboard_repository.dart';
+import 'package:share_verify/core/repositories/recipient_repository.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/repositories/travel_support_repository.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
@@ -28,6 +30,7 @@ class InitApplication {
 
     final shareholderRemote = ShareholderRemoteSource(apiClient);
     final dashboardRemote = DashboardRemoteSource(apiClient);
+    final recipientRemote = RecipientRemoteSource(apiClient);
     final travelSupportRemote = TravelSupportRemoteSource(apiClient);
     final photoRemote = PhotoRemoteSource(apiClient);
 
@@ -40,6 +43,10 @@ class InitApplication {
         dashboardSource: dashboardRemote,
         travelSupportSource: travelSupportRemote,
       ),
+      permanent: true,
+    );
+    Get.put<RecipientRepository>(
+      RecipientRepositoryImpl(remoteSource: recipientRemote),
       permanent: true,
     );
     Get.put<TravelSupportRepository>(

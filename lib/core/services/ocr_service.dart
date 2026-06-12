@@ -6,6 +6,7 @@ import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
 import 'package:share_verify/core/services/apple_vision_ocr_service.dart';
 import 'package:share_verify/core/models/ocr_result.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
+import 'package:share_verify/core/utils/ocr_debug_log.dart';
 import 'package:share_verify/core/utils/vision_text_layout.dart';
 
 typedef OcrTextRecognizer = Future<String> Function(
@@ -35,6 +36,12 @@ class OcrService {
     Uint8List imageBytes, {
     required String docType,
   }) async {
+    OcrDebugLog.started(
+      docType: docType,
+      imageBytes: imageBytes.length,
+      remoteOcrEnabled: _appConfig?.useRemoteOcr.value,
+    );
+
     final remote = await _tryRemoteOcr(imageBytes, docType: docType);
     if (remote != null) return remote;
 
@@ -45,17 +52,47 @@ class OcrService {
       } catch (error) {
         debugPrint('Apple Vision OCR failed, falling back to ML Kit: $error');
         final text = await _recognizeWithMlKit(imageBytes);
-        return parseRecognizedText(text, docType: docType);
+        OcrDebugLog.mlKitRaw(text);
+        final parsed = parseRecognizedText(text, docType: docType).copyWith(
+          rawText: text,
+          ocrSource: 'ML Kit (fallback)',
+        );
+        OcrDebugLog.pipeline(
+          source: 'ML Kit (fallback)',
+          docType: docType,
+          result: parsed,
+          note: error.toString(),
+        );
+        return parsed;
       }
     }
 
     if (_recognizeTextOverride != null) {
       final text = await _recognizeText(imageBytes, docType: docType);
-      return parseRecognizedText(text, docType: docType);
+      final parsed = parseRecognizedText(text, docType: docType).copyWith(
+        rawText: text,
+        ocrSource: 'Local override',
+      );
+      OcrDebugLog.pipeline(
+        source: 'Local override',
+        docType: docType,
+        result: parsed,
+      );
+      return parsed;
     }
 
     final text = await _recognizeText(imageBytes, docType: docType);
-    return parseRecognizedText(text, docType: docType);
+    OcrDebugLog.mlKitRaw(text);
+    final parsed = parseRecognizedText(text, docType: docType).copyWith(
+      rawText: text,
+      ocrSource: 'ML Kit',
+    );
+    OcrDebugLog.pipeline(
+      source: 'ML Kit',
+      docType: docType,
+      result: parsed,
+    );
+    return parsed;
   }
 
   Future<OcrResult?> _tryRemoteOcr(
@@ -65,16 +102,31 @@ class OcrService {
     final remote = _ocrRemote;
     final config = _appConfig;
     if (remote == null || config == null || !config.useRemoteOcr.value) {
+      if (config != null && !config.useRemoteOcr.value) {
+        OcrDebugLog.message(
+          'OCR API disabled in Settings → on-device ($docType)',
+        );
+      }
       return null;
     }
+
+    OcrDebugLog.message('Calling OCR API (vietnam-ocr-api) · $docType');
 
     try {
       final result = await remote.extractIdentity(imageBytes, docType: docType);
       if (result.hasIdentityNo || result.hasFullName) {
+        OcrDebugLog.pipeline(
+          source: 'OCR API (vietnam-ocr-api)',
+          docType: docType,
+          result: result,
+        );
         return result;
       }
+      OcrDebugLog.message(
+        'OCR API · $docType · empty result → trying on-device',
+      );
     } catch (error) {
-      debugPrint('Remote OCR failed, falling back to on-device: $error');
+      OcrDebugLog.message('OCR API failed → on-device: $error');
     }
     return null;
   }
@@ -99,7 +151,7 @@ class OcrService {
 
     if (!kIsWeb && Platform.isIOS) {
       try {
-        final recognizer = PluginAppleVisionRecognizer();
+        final recognizer = ResilientPluginAppleVisionRecognizer();
         final result = await recognizer.recognize(imageBytes);
         if (result.textBlocks.isNotEmpty) {
           return VisionTextLayout.blocksToLines(result.textBlocks);
@@ -159,6 +211,7 @@ class OcrService {
       identityNo: identityNo,
       fullName: fullName,
       birthDate: _extractBirthDate(normalized, docType: docType),
+      rawText: text.trim().isEmpty ? null : text,
     );
   }
 
@@ -174,18 +227,19 @@ class OcrService {
 
       if (labeled != null) {
         final inline = labeled.group(1)?.trim() ?? '';
-        final inlineDate = _normalizeBirthDateToken(inline);
+        final inlineDate = _normalizeBirthDateToken(inline, docType: docType);
         if (inlineDate != null) return inlineDate;
 
         if (i + 1 < lines.length) {
-          final nextDate = _normalizeBirthDateToken(lines[i + 1]);
+          final nextDate =
+              _normalizeBirthDateToken(lines[i + 1], docType: docType);
           if (nextDate != null) return nextDate;
         }
         continue;
       }
 
       if (_looksLikeBirthDateLine(line, docType: docType)) {
-        final parsed = _normalizeBirthDateToken(line);
+        final parsed = _normalizeBirthDateToken(line, docType: docType);
         if (parsed != null) return parsed;
       }
     }
@@ -199,15 +253,41 @@ class OcrService {
         RegExp(r'^\d{4}$').hasMatch(line.trim());
   }
 
-  static String? _normalizeBirthDateToken(String value) {
+  static String? _normalizeBirthDateToken(
+    String value, {
+    String? docType,
+  }) {
     final trimmed = value.trim();
     if (trimmed.isEmpty) return null;
 
     if (RegExp(r'^\d{4}$').hasMatch(trimmed)) return trimmed;
 
-    final match =
-        RegExp(r'(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})').firstMatch(trimmed);
-    return match?.group(1);
+    final match = RegExp(
+      r'(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})',
+    ).firstMatch(trimmed);
+    if (match == null) return null;
+
+    if (docType?.toUpperCase() == 'CMND') {
+      return _formatDdMmYyyy(
+        match.group(1)!,
+        match.group(2)!,
+        match.group(3)!,
+      );
+    }
+
+    return match.group(0);
+  }
+
+  static String _formatDdMmYyyy(String day, String month, String yearPart) {
+    final d = int.parse(day);
+    final m = int.parse(month);
+    var y = int.parse(yearPart);
+    if (y < 100) {
+      y += y >= 50 ? 1900 : 2000;
+    }
+    return '${d.toString().padLeft(2, '0')}-'
+        '${m.toString().padLeft(2, '0')}-'
+        '$y';
   }
 
   static String? _extractIdentityNo(String text, {required String docType}) {
@@ -232,7 +312,21 @@ class OcrService {
     return null;
   }
 
+  /// Cụm 9 chữ số CMND — ưu tiên khi quét toàn bộ text OCR.
+  static final RegExp _cmndNineDigitCluster = RegExp(
+    r'\b\d{3}[\s.\-]?\d{3}[\s.\-]?\d{3}\b',
+  );
+
+  static final RegExp _cmndNineDigits = RegExp(r'\b\d{9}\b');
+
   static String? _extractCmndIdentityNo(String text) {
+    for (final pattern in [_cmndNineDigitCluster, _cmndNineDigits]) {
+      for (final match in pattern.allMatches(text)) {
+        final value = _normalizeId(match.group(0)!, docType: 'CMND');
+        if (value != null) return value;
+      }
+    }
+
     final lines = _normalizedLines(text);
 
     // Layout CMND: "SỐ 174324001" trên cùng một dòng.
@@ -326,15 +420,18 @@ class OcrService {
   static String? _extractCmndFullName(String text, {String? identityNo}) {
     final lines = _normalizedLines(text);
 
-    // Layout CMND: "Họ tên: NGUYỄN HOÀI LINH" trên cùng một dòng (dưới dòng SỐ).
+    // "Họ tên: NGUYỄN HOÀI LINH" / "Hộ tên:.NGUYỄN HOÀI LINH" (OCR hay nhầm Hộ).
+    for (final line in lines) {
+      final fromLine = _extractCmndNameFromLabeledLine(line);
+      if (fromLine != null) return _formatDisplayName(fromLine);
+    }
+
     for (final pattern in _cmndInlineNamePatterns) {
       final match = pattern.firstMatch(text);
       final raw = match?.group(1)?.trim();
       if (raw == null || raw.isEmpty) continue;
-      final name = _sanitizeCapturedName(_stripDateSuffix(_cleanName(raw)));
-      if (_isPlausibleCmndName(name)) {
-        return _formatDisplayName(name);
-      }
+      final name = _cleanCmndCapturedName(raw);
+      if (name != null) return name;
     }
 
     // CMND cũ: tên in TRÊN nhãn "Họ tên:" (PaddleOCR thường đọc layout này).
@@ -396,23 +493,36 @@ class OcrService {
 
   static final List<RegExp> _cmndInlineNamePatterns = [
     RegExp(
-      r'(?:Họ và tên|Họ tên|Ho va ten|Họ, chữ đệm và tên khai sinh|Ho ten)[:\s.]+(.+)',
+      r'(?:Họ và tên|Họ tên|Hộ tên|Ho va ten|Họ, chữ đệm và tên khai sinh|Ho ten)\s*[:\s.]+(.+)$',
       caseSensitive: false,
     ),
     RegExp(
-      r'(?:Full name|Name)[:\s.]+(.+)',
+      r'(?:Full name|Name)\s*[:\s.]+(.+)$',
       caseSensitive: false,
     ),
   ];
 
-  static String? _extractNameFromCmndLine(String line) {
+  static String? _cleanCmndCapturedName(String raw) {
+    var name = _sanitizeCapturedName(_stripDateSuffix(_cleanName(raw)));
+    name = name.replaceAll(RegExp(r'\s*-\s*$'), '').trim();
+    if (!_isPlausibleCmndName(name)) return null;
+    return _formatDisplayName(name);
+  }
+
+  static String? _extractCmndNameFromLabeledLine(String line) {
     for (final pattern in _cmndInlineNamePatterns) {
       final match = pattern.firstMatch(line);
       final raw = match?.group(1)?.trim();
       if (raw == null || raw.isEmpty) continue;
-      final name = _sanitizeCapturedName(_stripDateSuffix(_cleanName(raw)));
-      if (_isPlausibleCmndName(name)) return name;
+      final name = _cleanCmndCapturedName(raw);
+      if (name != null) return name;
     }
+    return null;
+  }
+
+  static String? _extractNameFromCmndLine(String line) {
+    final labeled = _extractCmndNameFromLabeledLine(line);
+    if (labeled != null) return labeled;
 
     final single = _stripDateSuffix(line);
     return _isCmndNameValueLine(single) ? single : null;
@@ -462,6 +572,7 @@ class OcrService {
       'họ và tên',
       'ho va ten',
       'họ tên',
+      'hộ tên',
       'ho ten',
       'họ, chữ đệm và tên khai sinh',
       'ho, chu dem va ten khai sinh',

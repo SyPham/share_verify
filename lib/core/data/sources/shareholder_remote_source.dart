@@ -41,6 +41,32 @@ class ShareholderRemoteSource {
     return RegistrationNoAutocompletePageDto.fromJson(response.data ?? {});
   }
 
+  Future<RegistrationNoAutocompleteItemDto?> lookupRegistrationNumber(
+    String registrationNo, {
+    String? identityType,
+  }) async {
+    final normalized = registrationNo.trim();
+    if (normalized.isEmpty) return null;
+
+    try {
+      final response = await _client.get<Map<String, dynamic>>(
+        '/api/shareholders/registration-numbers/lookup',
+        queryParameters: {
+          'registrationNo': normalized,
+          if (identityType != null) 'identityType': identityType,
+        },
+      );
+
+      final data = response.data;
+      if (data == null) return null;
+      return RegistrationNoAutocompleteItemDto.fromJson(data);
+    } catch (error) {
+      final apiError = ApiClient.asApiException(error);
+      if (apiError?.isNotFound == true) return null;
+      rethrow;
+    }
+  }
+
   Future<ShareholderDetailDto> getDetail(String mcd) async {
     final response = await _client.get<Map<String, dynamic>>(
       '/api/shareholders/$mcd',

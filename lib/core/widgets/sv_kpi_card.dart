@@ -26,7 +26,7 @@ class SvKpiCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(SvSpacing.md),
+      padding: const EdgeInsets.all(SvSpacing.cardPadding),
       decoration: BoxDecoration(
         color: backgroundColor,
         borderRadius: BorderRadius.circular(SvSpacing.radiusXl),

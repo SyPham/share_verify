@@ -13,6 +13,7 @@ import 'package:share_verify/core/repositories/dashboard_repository.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/repositories/travel_support_repository.dart';
 import 'package:share_verify/core/utils/allowance_amount.dart';
+import 'package:share_verify/core/utils/identity_type_utils.dart';
 import '../fixtures/test_data.dart';
 
 class FakeShareholderRepository implements ShareholderRepository {
@@ -132,6 +133,27 @@ class FakeShareholderRepository implements ShareholderRepository {
       page: pageResult.page,
       pageSize: pageResult.pageSize,
     );
+  }
+
+  @override
+  Future<RegistrationNoAutocompleteItemDto?> lookupRegistrationNumber(
+    String registrationNo, {
+    String? identityType,
+  }) async {
+    final normalized = registrationNo.trim();
+    if (normalized.isEmpty) return null;
+
+    final page = await searchRegistrationNumbers(
+      normalized,
+      identityType: identityType,
+    );
+    final compactInput = compactIdentityNumber(normalized);
+    for (final item in page.items) {
+      if (compactIdentityNumber(item.registrationNo) == compactInput) {
+        return item;
+      }
+    }
+    return null;
   }
 }
 

@@ -91,6 +91,36 @@ void main() {
     expect(travelSupportRepository.lastReceiveAmount, greaterThan(0));
   });
 
+  test('CCCD with used legacy CMND still persists receive on barcode scan',
+      () async {
+    travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
+      alreadyUsed: true,
+      usedForMcd: 'SH0002',
+      usedForMcds: ['SH0002'],
+      message: 'Số CMND đã được sử dụng',
+    );
+
+    final c = createController();
+    await c.applyCaptureResult(
+      const IdentityVerification(
+        identityNo: '001234567890',
+        identityType: 'CCCD',
+        receiverName: 'Nguyễn Văn A',
+        legacyIdentityNo: '123456789',
+        photoPath: 'uploads/test.jpg',
+      ),
+    );
+
+    expect(c.hasIdentityUsageWarning, isTrue);
+
+    await c.onBarcodeScanned('SH0001');
+
+    expect(travelSupportRepository.receiveCallCount, 1);
+    expect(travelSupportRepository.lastPhotoPath, 'uploads/test.jpg');
+    expect(travelSupportRepository.lastIdentity?.identityType, 'CCCD');
+    expect(travelSupportRepository.lastIdentity?.legacyIdentityNo, '123456789');
+  });
+
   test('identity usage warning does not block barcode scan', () async {
     travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
       alreadyUsed: true,
@@ -108,6 +138,27 @@ void main() {
     await c.onBarcodeScanned('SH0001');
 
     expect(travelSupportRepository.receiveCallCount, 1);
+  });
+
+  test('resetManualIdentityForm clears manual entry state', () {
+    final c = createController();
+    c.manualNameController.text = 'Nguyễn Văn A';
+    c.manualIdController.text = '001234567890';
+    c.manualCmndController.text = '123456789';
+    c.manualPhotoPath.value = 'uploads/test.jpg';
+    c.manualFormPrefillSource.value = ManualFormPrefillSource.capture;
+    c.manualIdentityType.value = 'CMND';
+
+    c.resetManualIdentityForm();
+
+    expect(c.manualNameController.text, isEmpty);
+    expect(c.manualIdController.text, isEmpty);
+    expect(c.manualCmndController.text, isEmpty);
+    expect(c.manualPhotoPath.value, isNull);
+    expect(c.manualFormPrefillSource.value, isNull);
+    expect(c.manualIdentityType.value, 'CCCD');
+    expect(c.isIdentityReady, isFalse);
+    expect(c.hasIdentityUsageWarning, isFalse);
   });
 
   test('manual form with photo enables barcode without persisting early', () {
@@ -157,7 +208,6 @@ void main() {
         identityNo: '123456789',
         identityType: 'CMND',
         receiverName: 'Trần Văn B',
-        dateOfBirth: '01/01/1985',
         photoPath: 'uploads/cmnd.jpg',
       ),
     );
@@ -222,6 +272,14 @@ class _ThrowingShareholderRepository implements ShareholderRepository {
     String keyword, {
     int page = 1,
     int pageSize = 20,
+    String? identityType,
+  }) async {
+    throw const ApiException(message: 'Server error', statusCode: 500);
+  }
+
+  @override
+  Future<RegistrationNoAutocompleteItemDto?> lookupRegistrationNumber(
+    String registrationNo, {
     String? identityType,
   }) async {
     throw const ApiException(message: 'Server error', statusCode: 500);

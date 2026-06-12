@@ -13,10 +13,21 @@ class DashboardSummaryDto {
 
   factory DashboardSummaryDto.fromJson(Map<String, dynamic> json) {
     return DashboardSummaryDto(
-      totalShareholders: json['totalShareholders'] as int? ?? 0,
-      receivedCount: json['receivedCount'] as int? ?? 0,
-      notReceivedCount: json['notReceivedCount'] as int? ?? 0,
-      completionRate: (json['completionRate'] as num?)?.toDouble() ?? 0,
+      totalShareholders: _readInt(json['totalShareholders']),
+      receivedCount: _readInt(json['receivedCount']),
+      notReceivedCount: _readInt(json['notReceivedCount']),
+      completionRate: _readDouble(json['completionRate']),
     );
+  }
+
+  static int _readInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return 0;
+  }
+
+  static double _readDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    return 0;
   }
 }

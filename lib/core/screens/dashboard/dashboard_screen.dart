@@ -7,6 +7,8 @@ import 'package:share_verify/core/screens/settings/settings_screen.dart';
 import 'package:share_verify/core/screens/dashboard/components/recent_activity_list.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
+import 'package:share_verify/core/screens/recipients/recipients_list_screen.dart';
+import 'package:share_verify/core/utils/dashboard_format.dart';
 import 'package:share_verify/core/widgets/sv_kpi_card.dart';
 
 class DashboardScreen extends GetView<DashboardController> {
@@ -24,8 +26,7 @@ class DashboardScreen extends GetView<DashboardController> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final completionPercent = (controller.completionFraction * 100).floor();
-        final completionValue = completionPercent / 100;
+        final completionFraction = controller.completionFraction;
         return RefreshIndicator(
           onRefresh: controller.refresh,
           child: SingleChildScrollView(
@@ -46,14 +47,16 @@ class DashboardScreen extends GetView<DashboardController> {
                   const SizedBox(height: SvSpacing.md),
                 ],
               ProgressRingSection(
-                progress: completionValue,
-                percentText: '$completionPercent%',
+                progress: DashboardFormat.completionRingValue(completionFraction),
+                percentText: DashboardFormat.completionPercentLabel(
+                  completionFraction,
+                ),
               ),
               const SizedBox(height: SvSpacing.md),
               SvCard(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: SvSpacing.md,
-                  vertical: SvSpacing.sm,
+                  horizontal: SvSpacing.cardPadding,
+                  vertical: SvSpacing.xs,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -106,7 +109,10 @@ class DashboardScreen extends GetView<DashboardController> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Hoạt động gần đây', style: Theme.of(context).textTheme.titleLarge),
-                  TextButton(onPressed: () {}, child: const Text('Xem tất cả')),
+                  TextButton(
+                    onPressed: () => Get.toNamed(RecipientsListScreen.routeName),
+                    child: const Text('Xem tất cả'),
+                  ),
                 ],
               ),
               const SizedBox(height: SvSpacing.sm),

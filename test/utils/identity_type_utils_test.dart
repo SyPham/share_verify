@@ -12,19 +12,28 @@ void main() {
     expect(inferLegacyIdentityType('123456789'), 'CMND');
   });
 
-  test('supportsRegistrationNoAutocomplete includes CMND and CCCD primary fields',
+  test('supportsRegistrationNoAutocomplete includes passport primary field',
       () {
     expect(supportsRegistrationNoAutocomplete('CMND'), isTrue);
     expect(supportsRegistrationNoAutocomplete('CCCD'), isTrue);
-    expect(supportsRegistrationNoAutocomplete('PASSPORT'), isFalse);
+    expect(supportsRegistrationNoAutocomplete('PASSPORT'), isTrue);
     expect(
       supportsRegistrationNoAutocomplete('PASSPORT', legacy: true),
       isTrue,
     );
   });
 
+  test('isCompleteIdentityNumber validates document lengths', () {
+    expect(isCompleteIdentityNumber('CMND', '123456789'), isTrue);
+    expect(isCompleteIdentityNumber('CMND', '12345678'), isFalse);
+    expect(isCompleteIdentityNumber('CCCD', '079090001234'), isTrue);
+    expect(isCompleteIdentityNumber('PASSPORT', 'C1234567'), isTrue);
+    expect(isCompleteIdentityNumber('PASSPORT', '123456789'), isFalse);
+  });
+
   test('registrationNoAutocompleteIdentityType maps legacy CMND for CCCD', () {
     expect(registrationNoAutocompleteIdentityType('CCCD'), 'CCCD');
+    expect(registrationNoAutocompleteIdentityType('PASSPORT'), 'PASSPORT');
     expect(
       registrationNoAutocompleteIdentityType('CCCD', legacy: true),
       'CMND',

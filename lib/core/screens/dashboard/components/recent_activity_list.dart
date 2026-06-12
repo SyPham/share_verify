@@ -13,6 +13,7 @@ class RecentActivityList extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return SvCard(
+      padding: EdgeInsets.zero,
       showShadow: false,
       child: ListView.separated(
         itemCount: activities.length,

@@ -55,7 +55,6 @@ class SettingsScreen extends GetView<SettingsController> {
           children: [
             const SvServerConfigBanner(),
             SvCard(
-              padding: const EdgeInsets.all(SvSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -89,7 +88,7 @@ class SettingsScreen extends GetView<SettingsController> {
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: TextInputType.text,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                     ],
@@ -158,7 +157,6 @@ class SettingsScreen extends GetView<SettingsController> {
             }),
             const SizedBox(height: SvSpacing.md),
             SvCard(
-              padding: const EdgeInsets.all(SvSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -213,7 +211,6 @@ class SettingsScreen extends GetView<SettingsController> {
             ),
             const SizedBox(height: SvSpacing.md),
             SvCard(
-              padding: const EdgeInsets.all(SvSpacing.md),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -238,8 +235,7 @@ class SettingsScreen extends GetView<SettingsController> {
                   const SizedBox(height: SvSpacing.xs),
                   _HintRow(
                     icon: Icons.phone_iphone,
-                    text:
-                        'Thiết bị thật và máy dev phải cùng mạng Wi‑Fi/LAN',
+                    text: 'Thiết bị thật và máy dev phải cùng mạng Wi‑Fi/LAN',
                   ),
                 ],
               ),

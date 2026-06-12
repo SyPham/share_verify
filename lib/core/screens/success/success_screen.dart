@@ -61,7 +61,6 @@ class SuccessScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: SvSpacing.lg),
                       SvCard(
-                        padding: const EdgeInsets.all(SvSpacing.md),
                         child: Column(
                           children: [
                             _DetailRow(

@@ -77,6 +77,35 @@ Họ tên: NGUYỄN HOÀI LINH
       expect(result.fullName, 'NGUYỄN HOÀI LINH');
     });
 
+    test('extracts CMND 9-digit cluster and name from Hộ tên OCR line', () {
+      const text = '''
+SỐ 145064321
+Hộ tên:.NGUYỄN HOÀI LINH
+Sinh ngày 23-05-1995
+''';
+
+      final result = OcrService.parseRecognizedText(text, docType: 'CMND');
+
+      expect(result.identityNo, '145064321');
+      expect(result.fullName, 'NGUYỄN HOÀI LINH');
+      expect(result.birthDate, '23-05-1995');
+    });
+
+    test('extracts CMND 9-digit from spaced cluster in raw OCR text', () {
+      const text = '''
+GIẤY CHỨNG MINH NHÂN DÂN
+145 064 321
+Họ tên: TRẦN VĂN A
+Sinh ngày: 01/02/1990
+''';
+
+      final result = OcrService.parseRecognizedText(text, docType: 'CMND');
+
+      expect(result.identityNo, '145064321');
+      expect(result.fullName, 'TRẦN VĂN A');
+      expect(result.birthDate, '01-02-1990');
+    });
+
     test('keeps CMND name as parsed when OCR reads without diacritics', () {
       const text = '''
 SỐ 174324001
@@ -158,7 +187,7 @@ Sinh ngay: 15/08/1985
 
       expect(result.identityNo, '123456789');
       expect(result.fullName, 'TRAN VAN MINH');
-      expect(result.birthDate, '15/08/1985');
+      expect(result.birthDate, '15-08-1985');
     });
 
     test('extracts CMND birth date from dashed label', () {

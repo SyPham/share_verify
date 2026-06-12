@@ -33,27 +33,34 @@ class RecipientInfoSheet extends StatelessWidget {
           top: Radius.circular(SvSpacing.radiusXl),
         ),
       ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        minChildSize: 0.45,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) {
-          return SingleChildScrollView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(
-              SvSpacing.containerMargin,
-              SvSpacing.md,
-              SvSpacing.containerMargin,
-              SvSpacing.lg,
-            ),
-            child: RecipientInfoSheet(
-              shareholder: shareholder,
-              travelSupport: travelSupport,
-            ),
-          );
-        },
-      ),
+      builder: (sheetContext) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(sheetContext).bottom,
+          ),
+          child: DraggableScrollableSheet(
+            expand: false,
+            initialChildSize: 0.75,
+            minChildSize: 0.45,
+            maxChildSize: 0.95,
+            builder: (context, scrollController) {
+              return SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(
+                  SvSpacing.containerMargin,
+                  SvSpacing.md,
+                  SvSpacing.containerMargin,
+                  SvSpacing.lg,
+                ),
+                child: RecipientInfoSheet(
+                  shareholder: shareholder,
+                  travelSupport: travelSupport,
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -61,11 +68,8 @@ class RecipientInfoSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final recipients = _buildRecipientEntries();
-    final amountText = NumberFormat.currency(
-      locale: 'vi_VN',
-      symbol: '₫',
-      decimalDigits: 0,
-    ).format(travelSupport.receiveAmount);
+    final amountText =
+        '${NumberFormat('#,###').format(travelSupport.receiveAmount)} ₫';
     final timeText = DateFormat('HH:mm dd/MM/yyyy')
         .format(travelSupport.receiveTime.toLocal());
 
@@ -98,7 +102,6 @@ class RecipientInfoSheet extends StatelessWidget {
         ),
         const SizedBox(height: SvSpacing.md),
         SvCard(
-          padding: const EdgeInsets.all(SvSpacing.md),
           child: Column(
             children: [
               SvResultInfoRow(
@@ -227,7 +230,6 @@ class _RecipientCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return SvCard(
-      padding: const EdgeInsets.all(SvSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

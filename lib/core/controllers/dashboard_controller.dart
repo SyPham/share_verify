@@ -29,7 +29,7 @@ class DashboardController extends GetxController {
   int get receivedCount => stats.value.receivedCount;
   int get notReceivedCount => stats.value.notReceivedCount;
   int get total => stats.value.totalShareholders;
-  double get completionFraction => stats.value.completionPercent;
+  double get completionFraction => stats.value.completionFraction;
   int get completionPercentDisplay => (completionFraction * 100).round();
 
   List<ActivityItem> get recentActivities => activities;

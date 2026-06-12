@@ -44,25 +44,24 @@ class VerificationScreen extends GetView<VerificationController> {
         child: Column(
           children: [
             const SvServerConfigBanner(),
-            const SizedBox(height: SvSpacing.lg),
+            const SizedBox(height: SvSpacing.md),
             Obx(
               () => VerificationAttendanceSection(
                 attendanceType: controller.attendanceType.value,
                 onAttendanceTypeChanged: controller.onAttendanceTypeChanged,
               ),
             ),
-            const SizedBox(height: SvSpacing.lg),
+            const SizedBox(height: SvSpacing.md),
             const VerificationIdentitySection(),
             const VerificationIdentityUsageWarning(),
             Obx(() {
               if (!controller.canProceedToBarcodeScreen ||
-                  controller.isCheckingIdentity.value ||
-                  controller.hasIdentityUsageWarning) {
+                  controller.isCheckingIdentity.value) {
                 return const SizedBox.shrink();
               }
               return Column(
                 children: [
-                  const SizedBox(height: SvSpacing.lg),
+                  const SizedBox(height: SvSpacing.md),
                   SvPrimaryButton(
                     label: 'Quét mã thiệp mời',
                     icon: Icons.qr_code_2,

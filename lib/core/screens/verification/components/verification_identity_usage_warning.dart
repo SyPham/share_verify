@@ -30,7 +30,6 @@ class VerificationIdentityUsageWarning extends GetView<VerificationController> {
       return Padding(
         padding: const EdgeInsets.only(top: SvSpacing.lg),
         child: SvCard(
-          padding: const EdgeInsets.all(SvSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -115,6 +114,15 @@ class VerificationIdentityUsageWarning extends GetView<VerificationController> {
                         height: 1.35,
                       ),
                     ),
+                    if (canProceed) ...[
+                      const SizedBox(height: SvSpacing.sm),
+                      SvPrimaryButton(
+                        label: 'Quét mã cổ đông',
+                        icon: Icons.qr_code_2,
+                        onPressed: isBusy ? null : controller.goToBarcodeScreen,
+                        height: 48,
+                      ),
+                    ],
                   ],
                 );
               }),

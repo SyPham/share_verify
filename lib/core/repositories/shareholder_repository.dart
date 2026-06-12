@@ -18,6 +18,10 @@ abstract class ShareholderRepository {
     int pageSize = 20,
     String? identityType,
   });
+  Future<RegistrationNoAutocompleteItemDto?> lookupRegistrationNumber(
+    String registrationNo, {
+    String? identityType,
+  });
 }
 
 class ShareholderRepositoryImpl implements ShareholderRepository {
@@ -129,6 +133,17 @@ class ShareholderRepositoryImpl implements ShareholderRepository {
       keyword.trim(),
       page: page,
       pageSize: pageSize,
+      identityType: identityType,
+    );
+  }
+
+  @override
+  Future<RegistrationNoAutocompleteItemDto?> lookupRegistrationNumber(
+    String registrationNo, {
+    String? identityType,
+  }) {
+    return _remoteSource.lookupRegistrationNumber(
+      registrationNo,
       identityType: identityType,
     );
   }

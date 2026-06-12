@@ -23,7 +23,6 @@ class CaptureRouteArgs {
   final CaptureIntent intent;
   final String? prefillName;
   final String? prefillIdentityNo;
-  final String? prefillDateOfBirth;
   final String? prefillCmndNo;
 
   const CaptureRouteArgs({
@@ -33,7 +32,6 @@ class CaptureRouteArgs {
     this.intent = CaptureIntent.ocr,
     this.prefillName,
     this.prefillIdentityNo,
-    this.prefillDateOfBirth,
     this.prefillCmndNo,
   });
 }

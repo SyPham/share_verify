@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_verify/core/controllers/dashboard_controller.dart';
+import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dart';
 import 'package:share_verify/core/data/dto/shareholder_dtos.dart';
 import 'package:share_verify/core/data/dto/travel_support_dtos.dart';
 import 'package:share_verify/core/models/attendance_type.dart';
@@ -14,10 +16,10 @@ import 'package:share_verify/core/models/payment_status.dart';
 import 'package:share_verify/core/models/shareholder.dart';
 import 'package:share_verify/core/network/api_client.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
-import 'package:share_verify/core/utils/date_input_utils.dart';
 import 'package:share_verify/core/utils/identity_type_utils.dart';
 import 'package:share_verify/core/repositories/travel_support_repository.dart';
 import 'package:share_verify/core/models/travel_support_info.dart';
+import 'package:share_verify/core/utils/allowance_amount.dart';
 import 'package:share_verify/core/screens/verification/components/recipient_info_sheet.dart';
 import 'package:share_verify/core/services/barcode_scanner_service.dart';
 import 'package:share_verify/core/utils/barcode_parser.dart';
@@ -62,11 +64,13 @@ class VerificationController extends GetxController {
   final manualNameController = TextEditingController();
   final manualIdController = TextEditingController();
   final manualCmndController = TextEditingController();
-  final manualDateOfBirthController = TextEditingController();
   final manualIdentityType = 'CCCD'.obs;
   final manualFormPrefillSource = Rxn<ManualFormPrefillSource>();
   final manualPhotoPath = RxnString();
   final manualPhotoBytes = Rxn<Uint8List>();
+
+  Timer? _manualIdentityLookupDebounce;
+  String? _lastManualIdentityLookupKey;
 
   bool get isProxy => attendanceType.value == AttendanceType.proxy;
 
@@ -92,13 +96,24 @@ class VerificationController extends GetxController {
   bool get _canUseTextControllers => !isClosed;
 
   @override
+  void onInit() {
+    super.onInit();
+    manualIdController.addListener(_onManualPrimaryIdChanged);
+    manualCmndController.addListener(_onManualLegacyIdChanged);
+    ever(manualIdentityType, (_) => _scheduleManualIdentityLookup());
+  }
+
+  @override
   void onClose() {
+    _manualIdentityLookupDebounce?.cancel();
+    _manualIdentityUsageRecheckDebounce?.cancel();
+    manualIdController.removeListener(_onManualPrimaryIdChanged);
+    manualCmndController.removeListener(_onManualLegacyIdChanged);
     barcodeInputController.dispose();
     barcodeInputFocus.dispose();
     manualNameController.dispose();
     manualIdController.dispose();
     manualCmndController.dispose();
-    manualDateOfBirthController.dispose();
     super.onClose();
   }
 
@@ -200,6 +215,10 @@ class VerificationController extends GetxController {
     selectedShareholder.value = shareholder;
 
     if (shareholder.status == PaymentStatus.received) {
+      final refreshed = await _refreshShareholderDetail(shareholder.code);
+      if (refreshed != null) {
+        selectedShareholder.value = refreshed;
+      }
       errorMessage.value =
           'Cổ đông ${shareholder.code} đã nhận phụ cấp. Không thể lưu lại.';
       return;
@@ -208,46 +227,99 @@ class VerificationController extends GetxController {
     await _autoReceive(shareholder);
   }
 
-  Future<void> onViewRecipientInfo() async {
-    final context = Get.context;
-    if (context == null) return;
-
+  Future<void> onViewRecipientInfo(BuildContext context) async {
     final sh = selectedShareholder.value;
-    if (sh == null || sh.status != PaymentStatus.received) return;
+    if (sh == null) {
+      errorMessage.value = 'Chưa chọn cổ đông';
+      return;
+    }
+    if (sh.status != PaymentStatus.received) {
+      errorMessage.value = 'Cổ đông này chưa nhận phụ cấp';
+      return;
+    }
 
     isLoadingRecipients.value = true;
     errorMessage.value = null;
 
     try {
-      Shareholder current = sh;
-      TravelSupportInfo? travelSupport = sh.travelSupport;
-
-      if (travelSupport == null) {
-        final refreshed = await _shareholderRepository.findByMcd(sh.code);
-        if (refreshed == null) {
-          errorMessage.value = 'Không tìm thấy thông tin cổ đông';
-          return;
-        }
-        current = refreshed;
-        travelSupport = refreshed.travelSupport;
-        selectedShareholder.value = refreshed;
-      }
-
-      if (travelSupport == null) {
+      final resolved = await _resolveRecipientInfo(sh);
+      if (resolved == null) {
         errorMessage.value = 'Chưa có dữ liệu người nhận phụ cấp';
         return;
       }
 
+      selectedShareholder.value = resolved.shareholder;
+
       await RecipientInfoSheet.show(
         context,
-        shareholder: current,
-        travelSupport: travelSupport,
+        shareholder: resolved.shareholder,
+        travelSupport: resolved.travelSupport,
       );
     } catch (error) {
       errorMessage.value = ApiClient.messageFrom(error);
     } finally {
       isLoadingRecipients.value = false;
     }
+  }
+
+  Future<Shareholder?> _refreshShareholderDetail(String mcd) async {
+    try {
+      return await _shareholderRepository.findByMcd(mcd);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<({Shareholder shareholder, TravelSupportInfo travelSupport})?>
+      _resolveRecipientInfo(Shareholder sh) async {
+    Shareholder current = sh;
+    TravelSupportInfo? travelSupport = sh.travelSupport;
+
+    if (travelSupport == null) {
+      final refreshed = await _refreshShareholderDetail(sh.code);
+      if (refreshed != null) {
+        current = refreshed;
+        travelSupport = refreshed.travelSupport;
+      }
+    }
+
+    travelSupport ??= _buildSessionTravelSupport(current);
+    if (travelSupport == null) return null;
+
+    return (shareholder: current, travelSupport: travelSupport);
+  }
+
+  TravelSupportInfo? _buildSessionTravelSupport(Shareholder shareholder) {
+    final identity = effectivePendingIdentity;
+    if (identity == null || !identity.isComplete) return null;
+
+    if (isProxy) {
+      return TravelSupportInfo(
+        receiverName: shareholder.fullName,
+        receiverIdentityNo:
+            shareholder.idNumber.isNotEmpty ? shareholder.idNumber : null,
+        identityType: 'CCCD',
+        attendanceType: 'Proxy',
+        proxyPersonName: identity.receiverName,
+        proxyIdentityNo: identity.identityNo,
+        proxyIdentityType: identity.identityType,
+        receiveAmount: AllowanceAmount.forShareholder(shareholder),
+        receiveTime: DateTime.now(),
+        photoPath: identity.photoPath,
+        operatorName: null,
+      );
+    }
+
+    return TravelSupportInfo(
+      receiverName: identity.receiverName,
+      receiverIdentityNo: identity.identityNo,
+      identityType: identity.identityType,
+      attendanceType: 'Direct',
+      receiveAmount: AllowanceAmount.forShareholder(shareholder),
+      receiveTime: DateTime.now(),
+      photoPath: identity.photoPath,
+      operatorName: null,
+    );
   }
 
   void _resetIdentityFlow() {
@@ -286,10 +358,10 @@ class VerificationController extends GetxController {
 
   void _clearManualForm({bool resetIdentityType = false}) {
     if (!_canUseTextControllers) return;
+    _lastManualIdentityLookupKey = null;
     manualNameController.clear();
     manualIdController.clear();
     manualCmndController.clear();
-    manualDateOfBirthController.clear();
     if (resetIdentityType) {
       manualIdentityType.value = 'CCCD';
     }
@@ -298,12 +370,22 @@ class VerificationController extends GetxController {
     manualPhotoBytes.value = null;
   }
 
+  void resetManualIdentityForm() {
+    if (!_canUseTextControllers) return;
+    _manualIdentityLookupDebounce?.cancel();
+    _manualIdentityUsageRecheckDebounce?.cancel();
+    _clearManualForm(resetIdentityType: true);
+    identityCheckResult.value = null;
+    isCheckingIdentity.value = false;
+    errorMessage.value = null;
+    _resetBarcodeFlow();
+  }
+
   IdentityVerification? _buildPendingFromManualForm() {
     if (!_canUseTextControllers) return null;
     final name = manualNameController.text.trim();
     final id = manualIdController.text.trim();
     final type = manualIdentityType.value;
-    final dateOfBirth = manualDateOfBirthController.text.trim();
     final cmnd = manualCmndController.text.trim();
     final photo = manualPhotoPath.value;
 
@@ -314,7 +396,6 @@ class VerificationController extends GetxController {
       identityNo: id,
       identityType: type,
       receiverName: name,
-      dateOfBirth: dateOfBirth.isEmpty ? null : dateOfBirth,
       legacyIdentityNo: _manualLegacyIdentityValue(type, cmnd),
       photoPath: photo,
       photoBytes: manualPhotoBytes.value,
@@ -330,7 +411,6 @@ class VerificationController extends GetxController {
         identityNo: verification.identityNo,
         identityType: verification.identityType,
         fullName: verification.receiverName,
-        dateOfBirth: verification.dateOfBirth,
       );
 
       var result = primary;
@@ -340,9 +420,12 @@ class VerificationController extends GetxController {
           identityNo: legacyNo,
           identityType: inferLegacyIdentityType(legacyNo),
           fullName: verification.receiverName,
-          dateOfBirth: verification.dateOfBirth,
         );
-        result = _mergeIdentityCheckResults(primary, legacy);
+        result = _mergeIdentityCheckResults(
+          primary,
+          legacy,
+          primaryIdentityType: verification.identityType,
+        );
       }
 
       identityCheckResult.value = result;
@@ -359,9 +442,28 @@ class VerificationController extends GetxController {
 
   IdentityCheckResultDto _mergeIdentityCheckResults(
     IdentityCheckResultDto primary,
-    IdentityCheckResultDto legacy,
-  ) {
-    if (!primary.alreadyUsed) return legacy;
+    IdentityCheckResultDto legacy, {
+    String? primaryIdentityType,
+  }) {
+    if (!primary.alreadyUsed && legacy.alreadyUsed) {
+      final isCccdWithLegacy =
+          primaryIdentityType?.toUpperCase() == 'CCCD';
+      return IdentityCheckResultDto(
+        alreadyUsed: true,
+        usedForMcd: legacy.usedForMcd,
+        usedForMcds: legacy.usedForMcds,
+        receiverName: legacy.receiverName,
+        usedIdentityType: legacy.usedIdentityType,
+        usedIdentityNo: legacy.usedIdentityNo,
+        usedDateOfBirth: legacy.usedDateOfBirth,
+        receiveTime: legacy.receiveTime,
+        message: legacy.message ??
+            (isCccdWithLegacy
+                ? 'Số CMND đã được sử dụng. Số CCCD này coi như đã nhận phụ cấp.'
+                : null),
+      );
+    }
+
     if (!legacy.alreadyUsed) return primary;
 
     final mcds = <String>{
@@ -409,29 +511,109 @@ class VerificationController extends GetxController {
     identityCheckResult.value = null;
     manualPhotoPath.value = null;
     manualPhotoBytes.value = null;
+    manualFormPrefillSource.value = ManualFormPrefillSource.qr;
 
     manualIdentityType.value = 'CCCD';
     manualNameController.text = qrData.fullName;
     manualIdController.text = qrData.identityNo;
     manualCmndController.text = qrData.cmndNo ?? '';
-    manualDateOfBirthController.text =
-        formatDateOfBirthForInput(qrData.dateOfBirth);
-    manualFormPrefillSource.value = ManualFormPrefillSource.qr;
   }
 
   void _fillManualFormFromCapture(IdentityVerification verification) {
     if (!_canUseTextControllers) return;
     identityCheckResult.value = null;
+    manualFormPrefillSource.value = ManualFormPrefillSource.capture;
 
     manualIdentityType.value = verification.identityType;
     manualNameController.text = verification.receiverName;
     manualIdController.text = verification.identityNo;
     manualCmndController.text = verification.legacyIdentityNo ?? '';
-    manualDateOfBirthController.text =
-        formatDateOfBirthForInput(verification.dateOfBirth);
     manualPhotoPath.value = verification.photoPath;
     manualPhotoBytes.value = verification.photoBytes;
-    manualFormPrefillSource.value = ManualFormPrefillSource.capture;
+  }
+
+  void applyManualRegistrationLookup(RegistrationNoAutocompleteItemDto item) {
+    if (manualFormPrefillSource.value != null) return;
+    _fillManualFieldsFromRegistrationLookup(item);
+  }
+
+  void _fillManualFieldsFromRegistrationLookup(
+    RegistrationNoAutocompleteItemDto item,
+  ) {
+    if (!_canUseTextControllers) return;
+
+    if (manualNameController.text.trim().isEmpty && item.fullName.isNotEmpty) {
+      manualNameController.text = item.fullName;
+    }
+  }
+
+  void _onManualPrimaryIdChanged() {
+    _scheduleManualIdentityLookup(isLegacy: false);
+    _scheduleManualIdentityUsageRecheck();
+  }
+
+  void _onManualLegacyIdChanged() {
+    _scheduleManualIdentityLookup(isLegacy: true);
+    _scheduleManualIdentityUsageRecheck();
+  }
+
+  Timer? _manualIdentityUsageRecheckDebounce;
+
+  void _scheduleManualIdentityUsageRecheck() {
+    if (manualFormPrefillSource.value != null) return;
+    if (manualPhotoPath.value == null || manualPhotoPath.value!.isEmpty) return;
+
+    _manualIdentityUsageRecheckDebounce?.cancel();
+    _manualIdentityUsageRecheckDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(_previewManualIdentityCheck()),
+    );
+  }
+
+  void _scheduleManualIdentityLookup({bool isLegacy = false}) {
+    if (manualFormPrefillSource.value != null) return;
+
+    _manualIdentityLookupDebounce?.cancel();
+    _manualIdentityLookupDebounce = Timer(
+      const Duration(milliseconds: 400),
+      () => unawaited(_lookupManualIdentityPrefill(isLegacy: isLegacy)),
+    );
+  }
+
+  Future<void> _lookupManualIdentityPrefill({required bool isLegacy}) async {
+    if (!_canUseTextControllers || manualFormPrefillSource.value != null) {
+      return;
+    }
+
+    final type = manualIdentityType.value;
+    final controller = isLegacy ? manualCmndController : manualIdController;
+    final id = controller.text.trim();
+    if (id.isEmpty) return;
+
+    final lookupType = isLegacy ? inferLegacyIdentityType(id) : type;
+    if (!isCompleteIdentityNumber(lookupType, id)) return;
+
+    final lookupKey = '${isLegacy ? 'legacy' : 'primary'}:$lookupType:$id';
+    if (_lastManualIdentityLookupKey == lookupKey) return;
+
+    try {
+      final filter = registrationNoAutocompleteIdentityType(
+        type,
+        legacy: isLegacy,
+      );
+      final result = await _shareholderRepository.lookupRegistrationNumber(
+        id,
+        identityType: filter,
+      );
+      if (result == null) return;
+      if (controller.text.trim() != id) return;
+      if (manualFormPrefillSource.value != null) return;
+
+      _lastManualIdentityLookupKey = lookupKey;
+      _fillManualFieldsFromRegistrationLookup(result);
+    } catch (_) {
+      // Lookup is best-effort while typing manually.
+    }
   }
 
   Future<void> _previewManualIdentityCheck() async {
@@ -450,7 +632,6 @@ class VerificationController extends GetxController {
         identityNo: id,
         identityType: type,
         fullName: name,
-        dateOfBirth: _manualDateOfBirthValue,
       );
 
       var result = primary;
@@ -460,9 +641,12 @@ class VerificationController extends GetxController {
           identityNo: cmnd,
           identityType: inferLegacyIdentityType(cmnd),
           fullName: name,
-          dateOfBirth: _manualDateOfBirthValue,
         );
-        result = _mergeIdentityCheckResults(primary, legacy);
+        result = _mergeIdentityCheckResults(
+          primary,
+          legacy,
+          primaryIdentityType: type,
+        );
       }
 
       identityCheckResult.value = result;
@@ -475,12 +659,6 @@ class VerificationController extends GetxController {
         isCheckingIdentity.value = false;
       }
     }
-  }
-
-  String? get _manualDateOfBirthValue {
-    if (!_canUseTextControllers) return null;
-    final value = manualDateOfBirthController.text.trim();
-    return value.isEmpty ? null : value;
   }
 
   String? _manualLegacyIdentityValue(String type, String cmnd) {
@@ -509,7 +687,6 @@ class VerificationController extends GetxController {
     required CaptureIntent intent,
     String? prefillName,
     String? prefillIdentityNo,
-    String? prefillDateOfBirth,
     String? prefillCmndNo,
   }) async {
     final args = CaptureRouteArgs(
@@ -517,7 +694,6 @@ class VerificationController extends GetxController {
       intent: intent,
       prefillName: prefillName,
       prefillIdentityNo: prefillIdentityNo,
-      prefillDateOfBirth: prefillDateOfBirth,
       prefillCmndNo: prefillCmndNo,
     );
 
@@ -552,6 +728,24 @@ class VerificationController extends GetxController {
     }
   }
 
+  Future<String?> _resolvePhotoPathForReceive(IdentityVerification identity) async {
+    final existing = identity.photoPath?.trim();
+    if (existing != null && existing.isNotEmpty) return existing;
+
+    final bytes = identity.photoBytes ?? manualPhotoBytes.value;
+    if (bytes == null || bytes.isEmpty) return null;
+
+    final upload = await _travelSupportRepository.uploadPhoto(
+      bytes: bytes,
+      fileName: 'identity_${identity.identityType.toLowerCase()}.jpg',
+    );
+    final path = upload?.photoPath;
+    if (path != null && path.isNotEmpty) {
+      manualPhotoPath.value = path;
+    }
+    return path;
+  }
+
   Future<void> _autoReceive(Shareholder sh) async {
     if (isSubmitting.value) return;
 
@@ -562,6 +756,13 @@ class VerificationController extends GetxController {
     errorMessage.value = null;
 
     try {
+      final photoPath = await _resolvePhotoPathForReceive(identity);
+      if (photoPath == null || photoPath.isEmpty) {
+        errorMessage.value =
+            'Vui lòng chụp ảnh chứng cứ trước khi lưu nhận phụ cấp';
+        return;
+      }
+
       if (isProxy) {
         await _travelSupportRepository.receive(
           shareholder: sh,
@@ -569,19 +770,28 @@ class VerificationController extends GetxController {
             identityNo: sh.idNumber.isNotEmpty ? sh.idNumber : 'N/A',
             identityType: 'CCCD',
             receiverName: sh.fullName,
+            photoPath: photoPath,
+            photoBytes: identity.photoBytes,
           ),
           attendanceType: AttendanceType.proxy,
           proxyPersonName: identity.receiverName,
           proxyIdentityNo: identity.identityNo,
           proxyIdentityType: identity.identityType,
-          photoPath: identity.photoPath,
+          photoPath: photoPath,
         );
       } else {
         await _travelSupportRepository.receive(
           shareholder: sh,
-          identity: identity,
+          identity: IdentityVerification(
+            identityNo: identity.identityNo,
+            identityType: identity.identityType,
+            receiverName: identity.receiverName,
+            legacyIdentityNo: identity.legacyIdentityNo,
+            photoPath: photoPath,
+            photoBytes: identity.photoBytes,
+          ),
           attendanceType: AttendanceType.direct,
-          photoPath: identity.photoPath,
+          photoPath: photoPath,
         );
       }
 
@@ -594,7 +804,8 @@ class VerificationController extends GetxController {
         errorMessage.value = apiMessage.contains('đã')
             ? apiMessage
             : 'Người này đã nhận phụ cấp.';
-        selectedShareholder.value = sh.copyWith(status: PaymentStatus.received);
+        final refreshed = await _refreshShareholderDetail(sh.code);
+        selectedShareholder.value = refreshed ?? sh;
       } else {
         errorMessage.value = ApiClient.messageFrom(error);
       }

@@ -3,20 +3,18 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
-import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/utils/identity_type_utils.dart';
-import 'package:share_verify/core/widgets/date_of_birth_field.dart';
 import 'package:share_verify/core/widgets/evidence_photo_preview.dart';
+import 'package:share_verify/core/widgets/identity_type_radio_group.dart';
 import 'package:share_verify/core/widgets/name_autocomplete_field.dart';
 import 'package:share_verify/core/widgets/registration_no_autocomplete_field.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
+import 'package:share_verify/core/widgets/sv_outlined_button.dart';
 import 'package:share_verify/core/widgets/sv_primary_button.dart';
 
 class VerificationManualIdentityForm extends GetView<VerificationController> {
-  static const identityTypes = ['CCCD', 'CMND', 'PASSPORT'];
-
   const VerificationManualIdentityForm({super.key});
 
   @override
@@ -40,7 +38,6 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
     );
 
     return SvCard(
-      padding: const EdgeInsets.all(SvSpacing.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -108,24 +105,23 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
               labelText: idLabel,
               hintText: 'Nhập $idLabel',
             );
-            if (supportsRegistrationNoAutocomplete(type)) {
-              final filter = registrationNoAutocompleteIdentityType(type);
-              return RegistrationNoAutocompleteField(
-                key: const ValueKey('manual-identity-id'),
-                controller: controller.manualIdController,
-                onSearch: (query, page) =>
-                    Get.find<ShareholderRepository>().searchRegistrationNumbers(
-                  query,
-                  page: page,
-                  identityType: filter,
-                ),
-                onItemSelected: _fillNameFromRegistrationNo,
-                decoration: decoration,
-              );
-            }
-            return TextFormField(
+            final filter = registrationNoAutocompleteIdentityType(type);
+            final digitsOnly = isNumericIdentityType(type);
+            return RegistrationNoAutocompleteField(
               key: const ValueKey('manual-identity-id'),
               controller: controller.manualIdController,
+              keyboardType:
+                  digitsOnly ? TextInputType.number : TextInputType.text,
+              inputFormatters:
+                  digitsOnly ? numericIdentityInputFormatters : null,
+              onSearch: (query, page) =>
+                  Get.find<ShareholderRepository>().searchRegistrationNumbers(
+                query,
+                page: page,
+                identityType: filter,
+              ),
+              onItemSelected: (item) =>
+                  controller.applyManualRegistrationLookup(item),
               decoration: decoration,
             );
           }),
@@ -145,13 +141,16 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
                 RegistrationNoAutocompleteField(
                   key: const ValueKey('manual-identity-cmnd'),
                   controller: controller.manualCmndController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: numericIdentityInputFormatters,
                   onSearch: (query, page) =>
                       Get.find<ShareholderRepository>().searchRegistrationNumbers(
                     query,
                     page: page,
                     identityType: filter,
                   ),
-                  onItemSelected: _fillNameFromRegistrationNo,
+                  onItemSelected: (item) =>
+                      controller.applyManualRegistrationLookup(item),
                   decoration: fieldDecoration.copyWith(
                     labelText: label,
                     hintText: type.toUpperCase() == 'PASSPORT'
@@ -163,29 +162,12 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
             );
           }),
           const SizedBox(height: SvSpacing.sm),
-          DateOfBirthField(
-            key: const ValueKey('manual-identity-dob'),
-            controller: controller.manualDateOfBirthController,
-            decoration: fieldDecoration.copyWith(
-              labelText: 'Ngày sinh',
+          Obx(
+            () => IdentityTypeRadioGroup(
+              value: controller.manualIdentityType.value,
+              onChanged: (v) => controller.manualIdentityType.value = v,
             ),
           ),
-          const SizedBox(height: SvSpacing.sm),
-          Obx(() {
-            final identityType = controller.manualIdentityType.value;
-            return DropdownButtonFormField<String>(
-              value: identityTypes.contains(identityType)
-                  ? identityType
-                  : identityTypes.first,
-              decoration: fieldDecoration.copyWith(labelText: 'Loại giấy tờ'),
-              items: identityTypes
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                  .toList(),
-              onChanged: (v) {
-                if (v != null) controller.manualIdentityType.value = v;
-              },
-            );
-          }),
           const SizedBox(height: SvSpacing.sm),
           Obx(() {
             final hasPhoto = controller.manualPhotoPath.value != null;
@@ -208,6 +190,13 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
                   backgroundColor: theme.colorScheme.secondaryContainer,
                   foregroundColor: theme.colorScheme.onSecondaryContainer,
                 ),
+                const SizedBox(height: SvSpacing.sm),
+                SvOutlinedButton(
+                  label: 'Xóa và nhập lại',
+                  icon: Icons.restart_alt,
+                  onPressed: controller.resetManualIdentityForm,
+                  foregroundColor: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             );
           }),
@@ -222,11 +211,5 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
       'PASSPORT' => 'Thông tin từ chụp Hộ chiếu',
       _ => 'Thông tin từ chụp CCCD',
     };
-  }
-
-  void _fillNameFromRegistrationNo(RegistrationNoAutocompleteItemDto item) {
-    if (controller.manualNameController.text.trim().isEmpty) {
-      controller.manualNameController.text = item.fullName;
-    }
   }
 }

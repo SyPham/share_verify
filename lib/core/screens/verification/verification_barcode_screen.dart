@@ -54,7 +54,8 @@ class VerificationBarcodeScreen extends GetView<VerificationController> {
                       shareholder: shareholder,
                       isSubmitting: controller.isSubmitting.value,
                       isLoadingRecipients: controller.isLoadingRecipients.value,
-                      onViewRecipients: controller.onViewRecipientInfo,
+                      onViewRecipients: () =>
+                          controller.onViewRecipientInfo(context),
                       onProcessNextPerson: controller.processNextPerson,
                     ),
                   ],

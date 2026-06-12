@@ -1,6 +1,9 @@
 import 'package:get/get.dart';
+import 'package:share_verify/core/bindings/recipients_binding.dart';
 import 'package:share_verify/core/bindings/settings_binding.dart';
 import 'package:share_verify/core/bindings/shell_binding.dart';
+import 'package:share_verify/core/screens/recipients/recipient_detail_screen.dart';
+import 'package:share_verify/core/screens/recipients/recipients_list_screen.dart';
 import 'package:share_verify/core/screens/capture/capture_evidence_screen.dart';
 import 'package:share_verify/core/screens/settings/settings_screen.dart';
 import 'package:share_verify/core/screens/shell/shell_screen.dart';
@@ -36,6 +39,16 @@ class AppRoutes {
           name: SettingsScreen.routeName,
           page: () => const SettingsScreen(),
           binding: SettingsBinding(),
+        ),
+        GetPage(
+          name: RecipientsListScreen.routeName,
+          page: () => const RecipientsListScreen(),
+          binding: RecipientsListBinding(),
+        ),
+        GetPage(
+          name: RecipientDetailScreen.routeName,
+          page: () => const RecipientDetailScreen(),
+          binding: RecipientDetailBinding(),
         ),
       ];
 }

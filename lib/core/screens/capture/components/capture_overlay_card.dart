@@ -38,7 +38,6 @@ class CaptureOverlayCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return SvCard(
-      padding: const EdgeInsets.all(SvSpacing.md),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
