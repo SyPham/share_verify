@@ -31,7 +31,8 @@ void main() {
     expect(isCompleteIdentityNumber('PASSPORT', '123456789'), isFalse);
   });
 
-  test('registrationNoAutocompleteIdentityType maps legacy CMND for CCCD', () {
+  test('registrationNoAutocompleteIdentityType maps legacy type by digit length',
+      () {
     expect(registrationNoAutocompleteIdentityType('CCCD'), 'CCCD');
     expect(registrationNoAutocompleteIdentityType('PASSPORT'), 'PASSPORT');
     expect(
@@ -42,5 +43,28 @@ void main() {
       registrationNoAutocompleteIdentityType('PASSPORT', legacy: true),
       isNull,
     );
+    expect(
+      registrationNoAutocompleteIdentityType(
+        'PASSPORT',
+        legacy: true,
+        legacyIdentityNo: '123456789',
+      ),
+      'CMND',
+    );
+    expect(
+      registrationNoAutocompleteIdentityType(
+        'PASSPORT',
+        legacy: true,
+        legacyIdentityNo: '001234567890',
+      ),
+      'CCCD',
+    );
+  });
+
+  test('inferLegacyIdentityTypeOrNull validates digit lengths', () {
+    expect(inferLegacyIdentityTypeOrNull('123456789'), 'CMND');
+    expect(inferLegacyIdentityTypeOrNull('001234567890'), 'CCCD');
+    expect(inferLegacyIdentityTypeOrNull('12345'), isNull);
+    expect(inferLegacyIdentityTypeOrNull(null), isNull);
   });
 }

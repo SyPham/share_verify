@@ -121,6 +121,36 @@ void main() {
     expect(travelSupportRepository.lastIdentity?.legacyIdentityNo, '123456789');
   });
 
+  test('passport with used legacy CMND persists receive on barcode scan',
+      () async {
+    travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
+      alreadyUsed: true,
+      usedForMcd: 'SH0002',
+      usedForMcds: ['SH0002'],
+      message: 'Số CMND đã được sử dụng',
+    );
+
+    final c = createController();
+    await c.applyCaptureResult(
+      const IdentityVerification(
+        identityNo: 'C1234567',
+        identityType: 'PASSPORT',
+        receiverName: 'Lê Thị B',
+        legacyIdentityNo: '123456789',
+        photoPath: 'uploads/passport.jpg',
+      ),
+    );
+
+    expect(c.hasIdentityUsageWarning, isTrue);
+
+    await c.onBarcodeScanned('SH0001');
+
+    expect(travelSupportRepository.receiveCallCount, 1);
+    expect(travelSupportRepository.lastIdentity?.identityType, 'PASSPORT');
+    expect(travelSupportRepository.lastIdentity?.legacyIdentityNo, '123456789');
+    expect(travelSupportRepository.lastPhotoPath, 'uploads/passport.jpg');
+  });
+
   test('identity usage warning does not block barcode scan', () async {
     travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
       alreadyUsed: true,

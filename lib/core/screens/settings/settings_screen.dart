@@ -5,6 +5,7 @@ import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/config/app_setting.dart';
 import 'package:share_verify/core/controllers/settings_controller.dart';
+import 'package:share_verify/core/screens/openai_stats/open_ai_stats_screen.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
 import 'package:share_verify/core/widgets/sv_primary_button.dart';
 import 'package:share_verify/core/widgets/sv_server_config_banner.dart';
@@ -188,6 +189,110 @@ class SettingsScreen extends GetView<SettingsController> {
                           ? null
                           : controller.toggleRemoteOcr,
                     ),
+                  ),
+                  Obx(
+                    () => SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Dùng OpenAI cho CMND / Hộ chiếu'),
+                      subtitle: Text(
+                        'CMND: /api/ocr/document/openai · '
+                        'Hộ chiếu: /api/ocr/passport/openai. '
+                        'Cần OPENAI_API_KEY trên server.',
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      value: controller.useOpenAiOcr.value,
+                      onChanged: controller.isSaving.value ||
+                              !controller.useRemoteOcr.value
+                          ? null
+                          : controller.toggleOpenAiOcr,
+                    ),
+                  ),
+                  Obx(
+                    () => controller.useOpenAiOcr.value
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: SvSpacing.sm),
+                              TextFormField(
+                                controller: controller.openAiModelController,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  color: SvPalette.onSurface,
+                                ),
+                                cursorColor: SvPalette.primary,
+                                decoration: fieldDecoration.copyWith(
+                                  labelText: 'Model OpenAI (tùy chọn)',
+                                  hintText: 'gpt-4o-mini',
+                                  prefixIcon: Icon(
+                                    Icons.smart_toy_outlined,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: SvSpacing.xs),
+                              Text(
+                                'Để trống = dùng OPENAI_MODEL trên server.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: SvSpacing.sm),
+                              Obx(() {
+                                if (controller.isLoadingOpenAiPricing.value) {
+                                  return const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      vertical: SvSpacing.xs,
+                                    ),
+                                    child: LinearProgressIndicator(),
+                                  );
+                                }
+                                final pricing = controller.openAiPricing.value;
+                                if (pricing == null || pricing.models.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Bảng giá OpenAI (ước tính / 1M token)',
+                                      style: theme.textTheme.labelMedium
+                                          ?.copyWith(fontWeight: FontWeight.w600),
+                                    ),
+                                    const SizedBox(height: SvSpacing.xs),
+                                    Text(
+                                      'Tỷ giá: 1 USD = '
+                                      '${pricing.usdToVnd.toStringAsFixed(0)} VND',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    const SizedBox(height: SvSpacing.xs),
+                                    ...pricing.models.map(
+                                      (item) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: SvSpacing.xs,
+                                        ),
+                                        child: Text(
+                                          '${item.model}: in \$${item.inputPer1M} · out \$${item.outputPer1M}',
+                                          style: theme.textTheme.bodySmall,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }),
+                              const SizedBox(height: SvSpacing.sm),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () =>
+                                      Get.toNamed(OpenAiStatsScreen.routeName),
+                                  icon: const Icon(Icons.bar_chart_outlined),
+                                  label: const Text('Xem thống kê OpenAI'),
+                                ),
+                              ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
                   ),
                   Obx(
                     () => _UrlPreview(url: controller.previewOcrApiUrl.value),

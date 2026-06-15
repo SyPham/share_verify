@@ -8,6 +8,8 @@ class CaptureImageCropView extends StatelessWidget {
   final Uint8List imageBytes;
   final CropController cropController;
   final double? aspectRatio;
+  final InitialRectBuilder? initialRectBuilder;
+  final double cornerRadius;
   final ValueChanged<Uint8List> onCropped;
   final ValueChanged<Object> onCropError;
 
@@ -16,6 +18,8 @@ class CaptureImageCropView extends StatelessWidget {
     required this.imageBytes,
     required this.cropController,
     this.aspectRatio,
+    this.initialRectBuilder,
+    this.cornerRadius = SvSpacing.radiusLg,
     required this.onCropped,
     required this.onCropError,
   });
@@ -28,10 +32,11 @@ class CaptureImageCropView extends StatelessWidget {
         image: imageBytes,
         controller: cropController,
         aspectRatio: aspectRatio,
+        initialRectBuilder: initialRectBuilder,
         interactive: true,
         baseColor: Colors.black,
         maskColor: Colors.black.withValues(alpha: 0.45),
-        radius: SvSpacing.radiusLg,
+        radius: cornerRadius,
         onCropped: (result) {
           switch (result) {
             case CropSuccess(:final croppedImage):

@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:share_verify/core/models/open_ai_usage_info.dart';
+
 class IdentityVerification {
   final String identityNo;
   final String identityType;
@@ -8,6 +10,7 @@ class IdentityVerification {
   final String? legacyIdentityNo;
   final String? photoPath;
   final Uint8List? photoBytes;
+  final OpenAiUsageInfo? openAiUsage;
 
   const IdentityVerification({
     required this.identityNo,
@@ -17,6 +20,7 @@ class IdentityVerification {
     this.legacyIdentityNo,
     this.photoPath,
     this.photoBytes,
+    this.openAiUsage,
   });
 
   bool get isComplete =>

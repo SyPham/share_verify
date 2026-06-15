@@ -8,6 +8,7 @@ import 'package:share_verify/core/repositories/dashboard_repository.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/repositories/travel_support_repository.dart';
 import 'package:share_verify/core/services/barcode_scanner_service.dart';
+import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/services/ocr_service.dart';
 
 class ShellBinding extends Bindings {
@@ -46,6 +47,7 @@ class CaptureBinding extends Bindings {
       CaptureController(
         travelSupportRepository: Get.find<TravelSupportRepository>(),
         ocrService: Get.find<OcrService>(),
+        appConfig: Get.find<AppConfigService>(),
         routeArgsOverride: args,
       ),
     );

@@ -3,6 +3,29 @@ import 'package:share_verify/core/models/ocr_result.dart';
 import 'package:share_verify/core/utils/date_input_utils.dart';
 
 void main() {
+  test('fromApiResponse parses openAiUsage', () {
+    final result = OcrResult.fromApiResponse(
+      {
+        'idNumber': '174324001',
+        'fullName': 'NGUYỄN HOÀI LINH',
+        'openAiUsage': {
+          'model': 'gpt-4o-mini',
+          'promptTokens': 850,
+          'completionTokens': 42,
+          'totalTokens': 892,
+          'costUsd': 0.000153,
+          'costVnd': 4,
+        },
+      },
+      docType: 'CMND',
+    );
+
+    expect(result.openAiUsage?.model, 'gpt-4o-mini');
+    expect(result.openAiUsage?.totalTokens, 892);
+    expect(result.openAiUsage?.costUsd, 0.000153);
+    expect(result.openAiUsage?.displayLabel, contains('\$'));
+  });
+
   test('fromApiResponse parses confidence fields', () {
     final result = OcrResult.fromApiResponse(
       {

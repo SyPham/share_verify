@@ -29,35 +29,48 @@ class IdentityTypeRadioGroup extends StatelessWidget {
           ),
         ),
         const SizedBox(height: SvSpacing.xs),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: SvPalette.surface,
-            borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
-            border: Border.all(color: SvPalette.outline),
-          ),
-          child: Column(
-            children: [
-              for (var i = 0; i < options.length; i++) ...[
-                if (i > 0) Divider(height: 1, color: SvPalette.outlineVariant),
-                RadioListTile<String>(
-                  value: options[i],
-                  groupValue: selected,
-                  onChanged: (v) {
-                    if (v != null) onChanged(v);
-                  },
-                  title: Text(
-                    _labelFor(options[i]),
-                    style: theme.textTheme.bodyLarge,
-                  ),
-                  activeColor: SvPalette.primary,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: SvSpacing.sm,
-                  ),
-                  visualDensity: VisualDensity.compact,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
+            final compact = width < 360;
+            final stacked = width < 300;
+
+            return DecoratedBox(
+              decoration: BoxDecoration(
+                color: SvPalette.surface,
+                borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+                border: Border.all(color: SvPalette.outline),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 2 : SvSpacing.xs,
+                  vertical: SvSpacing.xs,
                 ),
-              ],
-            ],
-          ),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < options.length; i++) ...[
+                      if (i > 0)
+                        Container(
+                          width: 1,
+                          height: stacked ? 44 : 28,
+                          color: SvPalette.outlineVariant,
+                        ),
+                      Expanded(
+                        child: _IdentityTypeRadioOption(
+                          type: options[i],
+                          label: _labelFor(options[i]),
+                          groupValue: selected,
+                          onChanged: onChanged,
+                          compact: compact,
+                          stacked: stacked,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -69,5 +82,72 @@ class IdentityTypeRadioGroup extends StatelessWidget {
       'PASSPORT' => 'Hộ chiếu',
       _ => 'CCCD',
     };
+  }
+}
+
+class _IdentityTypeRadioOption extends StatelessWidget {
+  const _IdentityTypeRadioOption({
+    required this.type,
+    required this.label,
+    required this.groupValue,
+    required this.onChanged,
+    required this.compact,
+    required this.stacked,
+  });
+
+  final String type;
+  final String label;
+  final String groupValue;
+  final ValueChanged<String> onChanged;
+  final bool compact;
+  final bool stacked;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final labelStyle = (compact ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium)
+        ?.copyWith(fontWeight: FontWeight.w500);
+
+    final radio = Radio<String>(
+      value: type,
+      groupValue: groupValue,
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
+      activeColor: SvPalette.primary,
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+
+    final labelWidget = Text(
+      label,
+      style: labelStyle,
+      textAlign: TextAlign.center,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+      onTap: () => onChanged(type),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: SvSpacing.xs),
+        child: stacked
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  radio,
+                  labelWidget,
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  radio,
+                  Flexible(child: labelWidget),
+                ],
+              ),
+      ),
+    );
   }
 }

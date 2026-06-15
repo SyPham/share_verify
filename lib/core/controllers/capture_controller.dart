@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:crop_your_image/crop_your_image.dart';
@@ -6,6 +7,7 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_verify/core/controllers/dashboard_controller.dart';
 import 'package:share_verify/core/data/dto/travel_support_dtos.dart';
+import 'package:share_verify/core/models/open_ai_usage_info.dart';
 import 'package:share_verify/core/models/attendance_type.dart';
 import 'package:share_verify/core/models/capture_route_args.dart';
 import 'package:share_verify/core/utils/identity_type_utils.dart';
@@ -15,7 +17,9 @@ import 'package:share_verify/core/models/payment_status.dart';
 import 'package:share_verify/core/models/shareholder.dart';
 import 'package:share_verify/core/network/api_client.dart';
 import 'package:share_verify/core/repositories/travel_support_repository.dart';
+import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/services/ocr_service.dart';
+import 'package:share_verify/core/services/open_ai_usage_store.dart';
 import 'package:share_verify/core/utils/ocr_debug_log.dart';
 import 'package:share_verify/core/utils/camera_image_crop.dart';
 import 'package:share_verify/core/widgets/document_camera_preview.dart';
@@ -35,11 +39,13 @@ class CaptureController extends GetxController {
 
   final TravelSupportRepository _travelSupportRepository;
   final OcrService _ocrService;
+  final AppConfigService? _appConfig;
   final ImagePicker _imagePicker = ImagePicker();
 
   CaptureController({
     TravelSupportRepository? travelSupportRepository,
     OcrService? ocrService,
+    AppConfigService? appConfig,
     CaptureRouteArgs? routeArgsOverride,
     Shareholder? shareholderOverride,
     CaptureMode? modeOverride,
@@ -51,6 +57,7 @@ class CaptureController extends GetxController {
   })  : _travelSupportRepository =
             travelSupportRepository ?? Get.find<TravelSupportRepository>(),
         _ocrService = ocrService ?? Get.find<OcrService>(),
+        _appConfig = appConfig,
         _routeArgsOverride = routeArgsOverride,
         _shareholderOverride = shareholderOverride,
         _modeOverride = modeOverride,
@@ -90,6 +97,7 @@ class CaptureController extends GetxController {
   final ocrIdConfidence = Rxn<double>();
   final ocrNameConfidence = Rxn<double>();
   final ocrRawText = RxnString();
+  final ocrOpenAiUsage = Rxn<OpenAiUsageInfo>();
   final identityNoController = TextEditingController();
   final cmndNoController = TextEditingController();
   final receiverNameController = TextEditingController();
@@ -160,8 +168,20 @@ class CaptureController extends GetxController {
 
   bool get isQrPrefilled => intent == CaptureIntent.qrPrefilled;
 
-  /// CMND: auto-crop theo khung overlay trên camera, bỏ bước crop tay.
-  bool get usesAutoCrop => identityType.toUpperCase() == 'CMND';
+  bool get _isCmnd => identityType.toUpperCase() == 'CMND';
+
+  /// CMND + OpenAI: người dùng tự crop vùng số + họ tên trước khi gọi API.
+  bool get usesOpenAiCmndOcr {
+    final config = _appConfig;
+    if (config == null) {
+      if (!Get.isRegistered<AppConfigService>()) return false;
+      return _isCmnd && Get.find<AppConfigService>().useOpenAiOcr.value;
+    }
+    return _isCmnd && config.useOpenAiOcr.value;
+  }
+
+  /// CMND VietOCR: auto-crop theo khung overlay; CMND OpenAI: crop tay.
+  bool get usesAutoCrop => _isCmnd && !usesOpenAiCmndOcr;
 
   void _applyQrPrefillToControllers() {
     if (prefillIdentityNo != null && prefillIdentityNo!.isNotEmpty) {
@@ -175,17 +195,20 @@ class CaptureController extends GetxController {
     }
   }
 
-  /// CMND: OCR trên ảnh gốc (đủ vùng ngày sinh); loại khác dùng ảnh đã crop.
+  /// CMND VietOCR: ảnh gốc (đủ vùng ngày sinh). CMND OpenAI: ảnh đã crop tay.
   Uint8List? get _ocrInputBytes {
-    if (identityType.toUpperCase() == 'CMND') {
+    if (_isCmnd && usesOpenAiCmndOcr) {
+      return imageBytes.value;
+    }
+    if (_isCmnd) {
       return rawImageBytes.value ?? imageBytes.value;
     }
     return imageBytes.value;
   }
 
-  /// Ảnh lưu làm chứng cứ — CMND dùng ảnh gốc chưa crop; loại khác dùng ảnh đã crop.
+  /// Ảnh chứng cứ — CMND luôn lưu ảnh gốc; loại khác dùng ảnh đã crop.
   Uint8List? get _evidencePhotoBytes {
-    if (identityType.toUpperCase() == 'CMND') {
+    if (_isCmnd) {
       return rawImageBytes.value ?? imageBytes.value;
     }
     return imageBytes.value;
@@ -240,6 +263,9 @@ class CaptureController extends GetxController {
         isCapturing.value = false;
         await _finishCapturedImageProcessing();
       } else {
+        if (usesOpenAiCmndOcr) {
+          cropAspectMode.value = CropAspectMode.free;
+        }
         await _stopCameraPreview();
         isCapturing.value = false;
         capturePhase.value = CaptureUiPhase.cropping;
@@ -272,11 +298,17 @@ class CaptureController extends GetxController {
 
   void setCropAspectMode(CropAspectMode mode) {
     cropAspectMode.value = mode;
-    _applyCropAspectMode(mode);
+    if (capturePhase.value == CaptureUiPhase.cropping) {
+      _applyCropAspectMode(mode);
+    }
   }
 
   void _applyCropAspectMode(CropAspectMode mode) {
-    cropController.aspectRatio = mode.aspectRatio;
+    try {
+      cropController.aspectRatio = mode.aspectRatio;
+    } catch (_) {
+      // Crop widget chưa mount — aspectRatio khởi tạo qua CaptureImageCropView.
+    }
   }
 
   void applyCrop() {
@@ -333,6 +365,18 @@ class CaptureController extends GetxController {
       ocrIdConfidence.value = ocr.idConfidence;
       ocrNameConfidence.value = ocr.nameConfidence;
       ocrRawText.value = ocr.rawText;
+      ocrOpenAiUsage.value = ocr.openAiUsage;
+      final usage = ocr.openAiUsage;
+      if (usage != null) {
+        unawaited(
+          Get.find<OpenAiUsageStore>().addUsage(
+            usage: usage,
+            docType: identityType,
+            identityNo: ocr.identityNo,
+            fullName: ocr.fullName,
+          ),
+        );
+      }
 
       if (!ocr.hasIdentityNo) {
         errorMessage.value =
@@ -346,6 +390,7 @@ class CaptureController extends GetxController {
           'OCR lỗi: ${ApiClient.messageFrom(error)}. Nhập tay thông tin bên dưới.';
       receiverNameController.text = prefillName ?? '';
       ocrRawText.value = null;
+      ocrOpenAiUsage.value = null;
     } finally {
       isOcrProcessing.value = false;
     }
@@ -365,10 +410,12 @@ class CaptureController extends GetxController {
     ocrIdConfidence.value = null;
     ocrNameConfidence.value = null;
     ocrRawText.value = null;
+    ocrOpenAiUsage.value = null;
     _clearIdentityUsageWarning();
     if (intent == CaptureIntent.qrPrefilled) {
       _applyQrPrefillToControllers();
     }
+    unawaited(_resumeCameraPreview());
   }
 
   void _clearIdentityUsageWarning() {
@@ -462,6 +509,7 @@ class CaptureController extends GetxController {
               legacyIdentityNo.isEmpty ? null : legacyIdentityNo,
           photoPath: photoPath,
           photoBytes: evidenceBytes,
+          openAiUsage: ocrOpenAiUsage.value,
         ),
       );
     } catch (error) {
@@ -567,8 +615,6 @@ class CaptureController extends GetxController {
     String? primaryIdentityType,
   }) {
     if (!primary.alreadyUsed && legacy.alreadyUsed) {
-      final isCccdWithLegacy =
-          primaryIdentityType?.toUpperCase() == 'CCCD';
       return IdentityCheckResultDto(
         alreadyUsed: true,
         usedForMcd: legacy.usedForMcd,
@@ -579,9 +625,7 @@ class CaptureController extends GetxController {
         usedDateOfBirth: legacy.usedDateOfBirth,
         receiveTime: legacy.receiveTime,
         message: legacy.message ??
-            (isCccdWithLegacy
-                ? 'Số CMND đã được sử dụng. Số CCCD này coi như đã nhận phụ cấp.'
-                : null),
+            _legacyIdentityUsedMessage(primaryIdentityType),
       );
     }
 
@@ -605,6 +649,16 @@ class CaptureController extends GetxController {
       receiveTime: primary.receiveTime ?? legacy.receiveTime,
       message: primary.message ?? legacy.message,
     );
+  }
+
+  String? _legacyIdentityUsedMessage(String? primaryIdentityType) {
+    return switch (primaryIdentityType?.toUpperCase()) {
+      'CCCD' =>
+        'Số CMND đã được sử dụng. Số CCCD này coi như đã nhận phụ cấp.',
+      'PASSPORT' =>
+        'Số CMND/CCCD phụ đã được sử dụng. Hộ chiếu này coi như đã nhận phụ cấp.',
+      _ => null,
+    };
   }
 
   void onIdentityFieldsEdited() {

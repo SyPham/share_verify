@@ -18,6 +18,7 @@ class CaptureOverlayCard extends StatelessWidget {
   final bool confirmEnabled;
   final String? confirmLabel;
   final String identityType;
+  final bool openAiCmndCrop;
 
   const CaptureOverlayCard({
     super.key,
@@ -32,6 +33,7 @@ class CaptureOverlayCard extends StatelessWidget {
     this.confirmEnabled = true,
     this.confirmLabel,
     this.identityType = 'CCCD',
+    this.openAiCmndCrop = false,
   });
 
   @override
@@ -46,7 +48,7 @@ class CaptureOverlayCard extends StatelessWidget {
           _buildActions(),
           const SizedBox(height: SvSpacing.sm),
           Text(
-            _hintForPhase(phase, identityType),
+            _hintForPhase(phase, identityType, openAiCmndCrop: openAiCmndCrop),
             style: theme.textTheme.bodySmall?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -103,15 +105,25 @@ class CaptureOverlayCard extends StatelessWidget {
     };
   }
 
-  String _hintForPhase(CaptureUiPhase phase, String type) {
+  String _hintForPhase(
+    CaptureUiPhase phase,
+    String type, {
+    bool openAiCmndCrop = false,
+  }) {
     return switch (phase) {
-      CaptureUiPhase.camera => _hintForCapture(type),
-      CaptureUiPhase.cropping => _hintForCrop(type),
-      CaptureUiPhase.review => _hintForReview(type),
+      CaptureUiPhase.camera =>
+        _hintForCapture(type, openAiCmndCrop: openAiCmndCrop),
+      CaptureUiPhase.cropping =>
+        _hintForCrop(type, openAiCmndCrop: openAiCmndCrop),
+      CaptureUiPhase.review =>
+        _hintForReview(type, openAiCmndCrop: openAiCmndCrop),
     };
   }
 
-  String _hintForCapture(String type) {
+  String _hintForCapture(String type, {bool openAiCmndCrop = false}) {
+    if (type.toUpperCase() == 'CMND' && openAiCmndCrop) {
+      return 'Chụp toàn bộ CMND rõ nét. Sau đó cắt tự do vùng số CMND và họ tên.';
+    }
     return switch (type.toUpperCase()) {
       'CMND' =>
         'Đặt toàn bộ mặt trước CMND vào khung, chụp rõ và thẳng. Ảnh sẽ được tự cắt.',
@@ -121,7 +133,10 @@ class CaptureOverlayCard extends StatelessWidget {
     };
   }
 
-  String _hintForCrop(String type) {
+  String _hintForCrop(String type, {bool openAiCmndCrop = false}) {
+    if (type.toUpperCase() == 'CMND' && openAiCmndCrop) {
+      return 'Chọn Tự do, kéo khung chữ nhật ngang bao vùng số CMND và họ tên.';
+    }
     return switch (type.toUpperCase()) {
       'CMND' =>
         'Chọn Vuông/Ngang/Dọc hoặc Tự do, kéo khung cắt rồi bấm Dùng ảnh.',
@@ -131,7 +146,10 @@ class CaptureOverlayCard extends StatelessWidget {
     };
   }
 
-  String _hintForReview(String type) {
+  String _hintForReview(String type, {bool openAiCmndCrop = false}) {
+    if (type.toUpperCase() == 'CMND' && openAiCmndCrop) {
+      return 'Kiểm tra vùng đã cắt và thông tin OpenAI OCR bên trên.';
+    }
     return switch (type.toUpperCase()) {
       'CMND' =>
         'Kiểm tra ảnh đã tự cắt và thông tin OCR. Có thể sửa họ tên/số CMND bên trên.',

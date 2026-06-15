@@ -12,6 +12,7 @@ import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/repositories/travel_support_repository.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/services/barcode_scanner_service.dart';
+import 'package:share_verify/core/services/open_ai_usage_store.dart';
 import 'package:share_verify/core/services/ocr_service.dart';
 
 class InitApplication {
@@ -58,6 +59,8 @@ class InitApplication {
     );
 
     Get.put<BarcodeScannerService>(BarcodeScannerService(), permanent: true);
+
+    Get.put<OpenAiUsageStore>(OpenAiUsageStore(), permanent: true);
 
     final ocrRemote = OcrRemoteSource(appConfig: appConfig);
     Get.put<OcrRemoteSource>(ocrRemote, permanent: true);

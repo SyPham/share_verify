@@ -5,7 +5,10 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/controllers/capture_controller.dart';
 import 'package:share_verify/core/data/dto/travel_support_dtos.dart';
 import 'package:share_verify/core/models/capture_route_args.dart';
+import 'package:share_verify/core/models/crop_aspect_mode.dart';
+import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/services/ocr_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../fixtures/test_data.dart';
 import '../support/fake_repositories.dart';
 
@@ -150,24 +153,72 @@ Họ và tên: Trần Thị B
     expect(controller.errorMessage.value, isNull);
   });
 
-  test('usesAutoCrop is true only for CMND', () {
+  test('usesAutoCrop is true for CMND without OpenAI', () async {
+    SharedPreferences.setMockInitialValues({});
+    final appConfig = AppConfigService();
+    await appConfig.load();
+
     final cmnd = CaptureController(
       travelSupportRepository: travelSupportRepository,
       ocrService: ocrService,
+      appConfig: appConfig,
       shareholderOverride: TestData.shareholders.first,
       identityTypeOverride: 'CMND',
     );
     cmnd.onInit();
     expect(cmnd.usesAutoCrop, isTrue);
+    expect(cmnd.usesOpenAiCmndOcr, isFalse);
 
     final cccd = CaptureController(
       travelSupportRepository: travelSupportRepository,
       ocrService: ocrService,
+      appConfig: appConfig,
       shareholderOverride: TestData.shareholders.first,
       identityTypeOverride: 'CCCD',
     );
     cccd.onInit();
     expect(cccd.usesAutoCrop, isFalse);
+  });
+
+  test('setCropAspectMode before crop UI does not throw', () async {
+    SharedPreferences.setMockInitialValues({});
+    final appConfig = AppConfigService();
+    await appConfig.load();
+    await appConfig.saveUseOpenAiOcr(true);
+
+    final controller = CaptureController(
+      travelSupportRepository: travelSupportRepository,
+      ocrService: ocrService,
+      appConfig: appConfig,
+      shareholderOverride: TestData.shareholders.first,
+      identityTypeOverride: 'CMND',
+    );
+    controller.onInit();
+
+    expect(
+      () => controller.setCropAspectMode(CropAspectMode.free),
+      returnsNormally,
+    );
+    expect(controller.cropAspectMode.value, CropAspectMode.free);
+  });
+
+  test('usesAutoCrop is false for CMND when OpenAI enabled', () async {
+    SharedPreferences.setMockInitialValues({});
+    final appConfig = AppConfigService();
+    await appConfig.load();
+    await appConfig.saveUseOpenAiOcr(true);
+
+    final cmnd = CaptureController(
+      travelSupportRepository: travelSupportRepository,
+      ocrService: ocrService,
+      appConfig: appConfig,
+      shareholderOverride: TestData.shareholders.first,
+      identityTypeOverride: 'CMND',
+    );
+    cmnd.onInit();
+
+    expect(cmnd.usesOpenAiCmndOcr, isTrue);
+    expect(cmnd.usesAutoCrop, isFalse);
   });
 
   test('confirm in evidence mode surfaces conflict errors', () async {

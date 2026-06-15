@@ -9,6 +9,7 @@ import 'package:share_verify/core/utils/identity_type_utils.dart';
 import 'package:share_verify/core/widgets/evidence_photo_preview.dart';
 import 'package:share_verify/core/widgets/identity_type_radio_group.dart';
 import 'package:share_verify/core/widgets/name_autocomplete_field.dart';
+import 'package:share_verify/core/widgets/open_ai_usage_banner.dart';
 import 'package:share_verify/core/widgets/registration_no_autocomplete_field.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
 import 'package:share_verify/core/widgets/sv_outlined_button.dart';
@@ -79,6 +80,16 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
               ],
             );
           }),
+          Obx(() {
+            final usage = controller.manualOpenAiUsage.value;
+            if (usage == null) return const SizedBox.shrink();
+            return Column(
+              children: [
+                const SizedBox(height: SvSpacing.sm),
+                OpenAiUsageBanner(usage: usage),
+              ],
+            );
+          }),
           const SizedBox(height: SvSpacing.sm),
           NameAutocompleteField(
             key: const ValueKey('manual-identity-name'),
@@ -134,6 +145,7 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
             final filter = registrationNoAutocompleteIdentityType(
               type,
               legacy: true,
+              legacyIdentityNo: controller.manualCmndController.text,
             );
             return Column(
               children: [

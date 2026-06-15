@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
+import 'package:share_verify/core/models/open_ai_usage_info.dart';
 import 'package:share_verify/core/network/api_client.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/utils/ip_input_utils.dart';
@@ -19,22 +22,31 @@ class SettingsController extends GetxController {
         _ocrRemote = ocrRemote ?? Get.find<OcrRemoteSource>();
 
   final ipController = TextEditingController();
+  final openAiModelController = TextEditingController();
   final isSaving = false.obs;
   final isTesting = false.obs;
   final isTestingOcr = false.obs;
   final useRemoteOcr = true.obs;
+  final useOpenAiOcr = false.obs;
   final statusMessage = RxnString();
   final isStatusError = false.obs;
   final previewBaseUrl = ''.obs;
   final previewOcrApiUrl = ''.obs;
+  final openAiPricing = Rxn<OpenAiPricingInfo>();
+  final isLoadingOpenAiPricing = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     ipController.text = _appConfigService.devMachineIp.value;
     useRemoteOcr.value = _appConfigService.useRemoteOcr.value;
+    useOpenAiOcr.value = _appConfigService.useOpenAiOcr.value;
+    openAiModelController.text = _appConfigService.openAiModel.value;
     ipController.addListener(_onIpChanged);
     _refreshPreview();
+    if (useOpenAiOcr.value) {
+      unawaited(loadOpenAiPricing());
+    }
   }
 
   void _onIpChanged() {
@@ -53,10 +65,32 @@ class SettingsController extends GetxController {
     await _appConfigService.saveUseRemoteOcr(enabled);
   }
 
+  Future<void> toggleOpenAiOcr(bool enabled) async {
+    useOpenAiOcr.value = enabled;
+    await _appConfigService.saveUseOpenAiOcr(enabled);
+    if (enabled) {
+      await loadOpenAiPricing();
+    } else {
+      openAiPricing.value = null;
+    }
+  }
+
+  Future<void> loadOpenAiPricing() async {
+    isLoadingOpenAiPricing.value = true;
+    try {
+      openAiPricing.value = await _ocrRemote.fetchOpenAiPricing();
+    } catch (_) {
+      openAiPricing.value = null;
+    } finally {
+      isLoadingOpenAiPricing.value = false;
+    }
+  }
+
   @override
   void onClose() {
     ipController.removeListener(_onIpChanged);
     ipController.dispose();
+    openAiModelController.dispose();
     super.onClose();
   }
 
@@ -73,6 +107,8 @@ class SettingsController extends GetxController {
     try {
       await _appConfigService.saveDevMachineIp(ip);
       await _appConfigService.saveUseRemoteOcr(useRemoteOcr.value);
+      await _appConfigService.saveUseOpenAiOcr(useOpenAiOcr.value);
+      await _appConfigService.saveOpenAiModel(openAiModelController.text);
       _apiClient.updateBaseUrl(_appConfigService.baseUrl);
       _setStatus(
         ip.isEmpty

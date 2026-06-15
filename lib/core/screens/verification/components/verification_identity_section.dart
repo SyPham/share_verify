@@ -42,28 +42,12 @@ class VerificationIdentitySection extends GetView<VerificationController> {
                 onPressed: controller.onScanQrCccd,
               ),
               const SizedBox(height: SvSpacing.sm),
-              Row(
-                children: [
-                  Expanded(
-                    child: SvPrimaryButton(
-                      label: 'Chụp CCCD',
-                      icon: Icons.camera_alt_outlined,
-                      onPressed: controller.onCaptureCccd,
-                      backgroundColor: colorScheme.secondaryContainer,
-                      foregroundColor: colorScheme.onSecondaryContainer,
-                    ),
-                  ),
-                  const SizedBox(width: SvSpacing.sm),
-                  Expanded(
-                    child: SvPrimaryButton(
-                      label: 'Chụp CMND',
-                      icon: Icons.badge_outlined,
-                      onPressed: controller.onCaptureCmnd,
-                      backgroundColor: colorScheme.secondaryContainer,
-                      foregroundColor: colorScheme.onSecondaryContainer,
-                    ),
-                  ),
-                ],
+              SvPrimaryButton(
+                label: 'Chụp CMND',
+                icon: Icons.badge_outlined,
+                onPressed: controller.onCaptureCmnd,
+                backgroundColor: colorScheme.secondaryContainer,
+                foregroundColor: colorScheme.onSecondaryContainer,
               ),
               const SizedBox(height: SvSpacing.sm),
               SvPrimaryButton(

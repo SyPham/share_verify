@@ -2,9 +2,15 @@ import 'package:flutter/services.dart';
 
 /// Suy ra loại giấy tờ phụ (CMND/CCCD) từ số định danh trên hộ chiếu.
 String inferLegacyIdentityType(String identityNo) {
-  final digits = identityNo.replaceAll(RegExp(r'\D'), '');
+  return inferLegacyIdentityTypeOrNull(identityNo) ?? 'CMND';
+}
+
+String? inferLegacyIdentityTypeOrNull(String? value) {
+  if (value == null || value.trim().isEmpty) return null;
+  final digits = value.replaceAll(RegExp(r'\D'), '');
   if (digits.length >= 12) return 'CCCD';
-  return 'CMND';
+  if (digits.length == 9) return 'CMND';
+  return null;
 }
 
 bool supportsLegacyIdentityField(String identityType) {
@@ -34,10 +40,14 @@ bool supportsRegistrationNoAutocomplete(
 String? registrationNoAutocompleteIdentityType(
   String identityType, {
   bool legacy = false,
+  String? legacyIdentityNo,
 }) {
   final upper = identityType.toUpperCase();
   if (legacy) {
     if (upper == 'CCCD') return 'CMND';
+    if (upper == 'PASSPORT') {
+      return inferLegacyIdentityTypeOrNull(legacyIdentityNo);
+    }
     return null;
   }
   if (upper == 'CMND') return 'CMND';

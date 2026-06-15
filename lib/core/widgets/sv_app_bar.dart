@@ -33,11 +33,9 @@ class SvAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: theme.colorScheme.surface,
       elevation: 0,
       scrolledUnderElevation: 0,
+      automaticallyImplyLeading: _variant != _SvAppBarVariant.dashboard,
       leading: _variant == _SvAppBarVariant.dashboard
-          ? IconButton(
-              icon: const Icon(Icons.settings_outlined, color: SvPalette.onSurface),
-              onPressed: onOpenSettings,
-            )
+          ? null
           : onBack != null
               ? IconButton(
                   icon: const Icon(Icons.arrow_back, color: SvPalette.onSurface),
@@ -81,15 +79,16 @@ class SvAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
       centerTitle: _variant == _SvAppBarVariant.dashboard,
       actions: [
-        IconButton(
-          icon: Icon(
-            Icons.settings,
-            color: _variant == _SvAppBarVariant.dashboard
-                ? SvPalette.primary
-                : SvPalette.onSurfaceVariant,
+        if (onOpenSettings != null)
+          IconButton(
+            icon: Icon(
+              Icons.settings,
+              color: _variant == _SvAppBarVariant.dashboard
+                  ? SvPalette.primary
+                  : SvPalette.onSurfaceVariant,
+            ),
+            onPressed: onOpenSettings,
           ),
-          onPressed: onOpenSettings,
-        ),
       ],
     );
   }

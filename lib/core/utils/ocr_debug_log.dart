@@ -36,13 +36,17 @@ class OcrDebugLog {
     required String docType,
     required int imageBytes,
     bool? remoteOcrEnabled,
+    bool? openAiOcrEnabled,
   }) {
     if (!enabled) return;
     final remote = remoteOcrEnabled == null
         ? ''
         : ' · remoteOcr=${remoteOcrEnabled ? 'ON' : 'OFF'}';
+    final openAi = openAiOcrEnabled == null
+        ? ''
+        : ' · openAiOcr=${openAiOcrEnabled ? 'ON' : 'OFF'}';
     _emit(
-      '[ShareVerify OCR] ▶ extractIdentity($docType) · ${imageBytes ~/ 1024}KB$remote',
+      '[ShareVerify OCR] ▶ extractIdentity($docType) · ${imageBytes ~/ 1024}KB$remote$openAi',
     );
   }
 
@@ -79,6 +83,13 @@ class OcrDebugLog {
       ..writeln(
         '  nameConfidence: ${_formatConfidence(result.nameConfidence)}',
       );
+
+    final usage = result.openAiUsage;
+    if (usage != null) {
+      buffer.writeln(
+        '  openAiCost: ${usage.displayLabel} · ${usage.totalTokens} tokens (${usage.model})',
+      );
+    }
 
     _emit(buffer.toString().trimRight());
   }

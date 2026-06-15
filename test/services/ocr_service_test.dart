@@ -309,6 +309,52 @@ Nguyễn Văn C
       expect(result.identityNo, '079090001234');
       expect(result.fullName, 'NGUYỄN VĂN A');
     });
+
+    test('uses OpenAI endpoint for CMND when enabled', () async {
+      final appConfig = AppConfigService();
+      await appConfig.load();
+      await appConfig.saveUseRemoteOcr(true);
+      await appConfig.saveUseOpenAiOcr(true);
+
+      String? requestPath;
+      final dio = Dio();
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            requestPath = options.path;
+            handler.resolve(
+              Response<Map<String, dynamic>>(
+                requestOptions: options,
+                data: {
+                  'success': true,
+                  'documentType': 'CMND',
+                  'idNumber': '174324001',
+                  'fullName': 'NGUYỄN HOÀI LINH',
+                },
+              ),
+            );
+          },
+        ),
+      );
+
+      final service = OcrService(
+        ocrRemote: OcrRemoteSource(appConfig: appConfig, dio: dio),
+        appConfig: appConfig,
+        recognizeText: (_, {required String docType}) async {
+          throw StateError('local OCR should not run');
+        },
+      );
+
+      final result = await service.extractIdentity(
+        Uint8List.fromList([1, 2, 3]),
+        docType: 'CMND',
+      );
+
+      expect(requestPath, '/api/ocr/document/openai');
+      expect(result.identityNo, '174324001');
+      expect(result.fullName, 'NGUYỄN HOÀI LINH');
+      expect(result.ocrSource, 'OpenAI OCR API');
+    });
   });
 
   group('extractIdentity Apple Vision fallback', () {

@@ -40,6 +40,7 @@ class OcrService {
       docType: docType,
       imageBytes: imageBytes.length,
       remoteOcrEnabled: _appConfig?.useRemoteOcr.value,
+      openAiOcrEnabled: _appConfig?.useOpenAiOcr.value,
     );
 
     final remote = await _tryRemoteOcr(imageBytes, docType: docType);
@@ -110,13 +111,19 @@ class OcrService {
       return null;
     }
 
-    OcrDebugLog.message('Calling OCR API (vietnam-ocr-api) · $docType');
+    final doc = docType.toUpperCase();
+    final useOpenAi =
+        config.useOpenAiOcr.value && (doc == 'CMND' || doc == 'PASSPORT');
+    final apiLabel = useOpenAi
+        ? 'OpenAI OCR API (vietnam-ocr-api)'
+        : 'OCR API (vietnam-ocr-api)';
+    OcrDebugLog.message('Calling $apiLabel · $docType');
 
     try {
       final result = await remote.extractIdentity(imageBytes, docType: docType);
       if (result.hasIdentityNo || result.hasFullName) {
         OcrDebugLog.pipeline(
-          source: 'OCR API (vietnam-ocr-api)',
+          source: result.ocrSource ?? apiLabel,
           docType: docType,
           result: result,
         );

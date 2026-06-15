@@ -12,6 +12,7 @@ import 'package:share_verify/core/models/attendance_type.dart';
 import 'package:share_verify/core/models/capture_route_args.dart';
 import 'package:share_verify/core/models/identity_verification.dart';
 import 'package:share_verify/core/models/invitation_barcode.dart';
+import 'package:share_verify/core/models/open_ai_usage_info.dart';
 import 'package:share_verify/core/models/payment_status.dart';
 import 'package:share_verify/core/models/shareholder.dart';
 import 'package:share_verify/core/network/api_client.dart';
@@ -68,6 +69,7 @@ class VerificationController extends GetxController {
   final manualFormPrefillSource = Rxn<ManualFormPrefillSource>();
   final manualPhotoPath = RxnString();
   final manualPhotoBytes = Rxn<Uint8List>();
+  final manualOpenAiUsage = Rxn<OpenAiUsageInfo>();
 
   Timer? _manualIdentityLookupDebounce;
   String? _lastManualIdentityLookupKey;
@@ -368,6 +370,7 @@ class VerificationController extends GetxController {
     manualFormPrefillSource.value = null;
     manualPhotoPath.value = null;
     manualPhotoBytes.value = null;
+    manualOpenAiUsage.value = null;
   }
 
   void resetManualIdentityForm() {
@@ -446,8 +449,6 @@ class VerificationController extends GetxController {
     String? primaryIdentityType,
   }) {
     if (!primary.alreadyUsed && legacy.alreadyUsed) {
-      final isCccdWithLegacy =
-          primaryIdentityType?.toUpperCase() == 'CCCD';
       return IdentityCheckResultDto(
         alreadyUsed: true,
         usedForMcd: legacy.usedForMcd,
@@ -458,9 +459,7 @@ class VerificationController extends GetxController {
         usedDateOfBirth: legacy.usedDateOfBirth,
         receiveTime: legacy.receiveTime,
         message: legacy.message ??
-            (isCccdWithLegacy
-                ? 'Số CMND đã được sử dụng. Số CCCD này coi như đã nhận phụ cấp.'
-                : null),
+            _legacyIdentityUsedMessage(primaryIdentityType),
       );
     }
 
@@ -484,6 +483,16 @@ class VerificationController extends GetxController {
       receiveTime: primary.receiveTime ?? legacy.receiveTime,
       message: primary.message ?? legacy.message,
     );
+  }
+
+  String? _legacyIdentityUsedMessage(String? primaryIdentityType) {
+    return switch (primaryIdentityType?.toUpperCase()) {
+      'CCCD' =>
+        'Số CMND đã được sử dụng. Số CCCD này coi như đã nhận phụ cấp.',
+      'PASSPORT' =>
+        'Số CMND/CCCD phụ đã được sử dụng. Hộ chiếu này coi như đã nhận phụ cấp.',
+      _ => null,
+    };
   }
 
   Future<void> onScanQrCccd() async {
@@ -511,6 +520,7 @@ class VerificationController extends GetxController {
     identityCheckResult.value = null;
     manualPhotoPath.value = null;
     manualPhotoBytes.value = null;
+    manualOpenAiUsage.value = null;
     manualFormPrefillSource.value = ManualFormPrefillSource.qr;
 
     manualIdentityType.value = 'CCCD';
@@ -530,6 +540,7 @@ class VerificationController extends GetxController {
     manualCmndController.text = verification.legacyIdentityNo ?? '';
     manualPhotoPath.value = verification.photoPath;
     manualPhotoBytes.value = verification.photoBytes;
+    manualOpenAiUsage.value = verification.openAiUsage;
   }
 
   void applyManualRegistrationLookup(RegistrationNoAutocompleteItemDto item) {
@@ -600,6 +611,7 @@ class VerificationController extends GetxController {
       final filter = registrationNoAutocompleteIdentityType(
         type,
         legacy: isLegacy,
+        legacyIdentityNo: isLegacy ? id : null,
       );
       final result = await _shareholderRepository.lookupRegistrationNumber(
         id,

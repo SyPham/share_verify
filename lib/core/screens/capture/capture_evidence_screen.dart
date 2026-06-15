@@ -5,11 +5,13 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/controllers/capture_controller.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
+import 'package:share_verify/core/models/open_ai_usage_info.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/utils/identity_type_utils.dart';
 import 'package:share_verify/core/screens/capture/components/capture_identity_review_fields.dart';
 import 'package:share_verify/core/screens/capture/components/capture_identity_usage_warning.dart';
 import 'package:share_verify/core/screens/capture/components/capture_overlay_card.dart';
+import 'package:share_verify/core/utils/openai_cmnd_crop.dart';
 import 'package:share_verify/core/widgets/capture_image_crop_view.dart';
 import 'package:share_verify/core/widgets/crop_aspect_mode_bar.dart';
 import 'package:share_verify/core/widgets/document_camera_preview.dart';
@@ -26,6 +28,7 @@ class CaptureEvidenceScreen extends GetView<CaptureController> {
       final isSubmitting = controller.isSubmitting.value;
       final isCapturing = controller.isCapturing.value;
       final isOcrProcessing = controller.isOcrProcessing.value;
+      final openAiUsage = controller.ocrOpenAiUsage.value;
       final phase = controller.capturePhase.value;
       final bytes = controller.imageBytes.value;
       final rawBytes = controller.rawImageBytes.value;
@@ -144,6 +147,7 @@ class CaptureEvidenceScreen extends GetView<CaptureController> {
                   isOcrProcessing: isOcrProcessing,
                   isCapturing: isCapturing,
                   confirmLabel: confirmLabel,
+                  openAiUsage: openAiUsage,
                 ),
               ),
           ],
@@ -181,6 +185,7 @@ class _CaptureBottomPanel extends StatelessWidget {
   final bool isOcrProcessing;
   final bool isCapturing;
   final String confirmLabel;
+  final OpenAiUsageInfo? openAiUsage;
 
   const _CaptureBottomPanel({
     required this.controller,
@@ -190,6 +195,7 @@ class _CaptureBottomPanel extends StatelessWidget {
     required this.isOcrProcessing,
     required this.isCapturing,
     required this.confirmLabel,
+    this.openAiUsage,
   });
 
   @override
@@ -209,6 +215,7 @@ class _CaptureBottomPanel extends StatelessWidget {
             idConfidence: controller.ocrIdConfidence.value,
             nameConfidence: controller.ocrNameConfidence.value,
             ocrRawText: controller.ocrRawText.value,
+            openAiUsage: openAiUsage,
             fromQr: controller.isQrPrefilled,
             onRerunOcr: controller.isQrPrefilled ? null : controller.rerunOcr,
             onFieldEdited: controller.onIdentityFieldsEdited,
@@ -240,6 +247,7 @@ class _CaptureBottomPanel extends StatelessWidget {
                       identityType: registrationNoAutocompleteIdentityType(
                         controller.identityType,
                         legacy: true,
+                        legacyIdentityNo: controller.cmndNoController.text,
                       ),
                     )
                 : null,
@@ -262,6 +270,7 @@ class _CaptureBottomPanel extends StatelessWidget {
           confirmEnabled: phase == CaptureUiPhase.review && !isOcrProcessing,
           confirmLabel: confirmLabel,
           identityType: controller.identityType,
+          openAiCmndCrop: controller.usesOpenAiCmndOcr,
         ),
       ],
     );
@@ -292,6 +301,8 @@ class _CaptureCroppingPanelState extends State<_CaptureCroppingPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final openAiCmndCrop = widget.controller.usesOpenAiCmndOcr;
+
     return Column(
       children: [
         Obx(
@@ -306,7 +317,10 @@ class _CaptureCroppingPanelState extends State<_CaptureCroppingPanel> {
             key: ValueKey(widget.rawBytes.hashCode),
             imageBytes: widget.rawBytes,
             cropController: widget.controller.cropController,
-            aspectRatio: _initialAspectRatio,
+            aspectRatio: openAiCmndCrop ? null : _initialAspectRatio,
+            initialRectBuilder:
+                openAiCmndCrop ? OpenAiCmndCrop.initialRectBuilder : null,
+            cornerRadius: openAiCmndCrop ? 0 : SvSpacing.radiusLg,
             onCropped: widget.controller.onCropCompleted,
             onCropError: widget.controller.onCropFailed,
           ),

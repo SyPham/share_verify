@@ -3,7 +3,9 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:share_verify/core/config/app_setting.dart';
 import 'package:share_verify/core/data/dto/name_autocomplete_dtos.dart';
+import 'package:share_verify/core/models/open_ai_usage_info.dart';
 import 'package:share_verify/core/models/ocr_result.dart';
+import 'package:share_verify/core/models/open_ai_stats.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
 
 class OcrRemoteException implements Exception {
@@ -41,17 +43,33 @@ class OcrRemoteSource {
     final normalizedType = docType.toUpperCase();
     final isPassport = normalizedType == 'PASSPORT';
     final isCmnd = normalizedType == 'CMND';
+    final useOpenAi = _appConfig.useOpenAiOcr.value;
+    final useOpenAiCmnd = isCmnd && useOpenAi;
+    final useOpenAiPassport = isPassport && useOpenAi;
+    final useOpenAiEndpoint = useOpenAiCmnd || useOpenAiPassport;
+
+    final endpoint = isPassport
+        ? (useOpenAiPassport
+            ? '/api/ocr/passport/openai'
+            : '/api/ocr/passport')
+        : (useOpenAiCmnd
+            ? '/api/ocr/document/openai'
+            : '/api/ocr/document');
+
     final formData = FormData.fromMap({
       'file': MultipartFile.fromBytes(
         imageBytes,
         filename: 'document.jpg',
       ),
-      if (!isPassport)
+      if (!isPassport && !useOpenAiCmnd)
         'pre_cropped': isCmnd ? 'false' : 'true',
+      if (useOpenAiCmnd) 'pre_cropped': 'true',
+      if (useOpenAiEndpoint && _appConfig.openAiModel.value.trim().isNotEmpty)
+        'model': _appConfig.openAiModel.value.trim(),
     });
 
     final response = await _dio.post<Map<String, dynamic>>(
-      isPassport ? '/api/ocr/passport' : '/api/ocr/document',
+      endpoint,
       data: formData,
       options: Options(contentType: 'multipart/form-data'),
     );
@@ -72,12 +90,34 @@ class OcrRemoteSource {
       throw const OcrRemoteException('OCR API xử lý thất bại');
     }
 
-    return OcrResult.fromApiResponse(data, docType: docType);
+    return OcrResult.fromApiResponse(data, docType: docType).copyWith(
+      ocrSource: useOpenAiEndpoint ? 'OpenAI OCR API' : 'OCR API',
+    );
   }
 
   Future<void> pingHealth() async {
     _dio.options.baseUrl = _appConfig.ocrApiBaseUrl;
     await _dio.get<Map<String, dynamic>>('/health');
+  }
+
+  Future<OpenAiPricingInfo> fetchOpenAiPricing() async {
+    _dio.options.baseUrl = _appConfig.ocrApiBaseUrl;
+    final response = await _dio.get<Map<String, dynamic>>('/api/ocr/openai/pricing');
+    final data = response.data;
+    if (data == null || data['success'] != true) {
+      throw const OcrRemoteException('Không tải được bảng giá OpenAI');
+    }
+    return OpenAiPricingInfo.fromJson(data);
+  }
+
+  Future<OpenAiStatsInfo> fetchOpenAiStats() async {
+    _dio.options.baseUrl = _appConfig.ocrApiBaseUrl;
+    final response = await _dio.get<Map<String, dynamic>>('/api/ocr/openai/stats');
+    final data = response.data;
+    if (data == null || data['success'] != true) {
+      throw const OcrRemoteException('Không tải được thống kê OpenAI');
+    }
+    return OpenAiStatsInfo.fromJson(data);
   }
 
   Future<NameAutocompletePageDto> searchNames(

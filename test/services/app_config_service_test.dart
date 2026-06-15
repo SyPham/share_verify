@@ -37,6 +37,22 @@ void main() {
     expect(reloaded.useRemoteOcr.value, isFalse);
   });
 
+  test('saveUseOpenAiOcr and saveOpenAiModel persist', () async {
+    final service = AppConfigService();
+    await service.load();
+
+    await service.saveUseOpenAiOcr(true);
+    await service.saveOpenAiModel('gpt-4o');
+
+    expect(service.useOpenAiOcr.value, isTrue);
+    expect(service.openAiModel.value, 'gpt-4o');
+
+    final reloaded = AppConfigService();
+    await reloaded.load();
+    expect(reloaded.useOpenAiOcr.value, isTrue);
+    expect(reloaded.openAiModel.value, 'gpt-4o');
+  });
+
   test('saveDevMachineIp persists value', () async {
     final service = AppConfigService();
     await service.load();

@@ -1,3 +1,5 @@
+import 'package:share_verify/core/models/open_ai_usage_info.dart';
+
 class OcrResult {
   final String? identityNo;
   final String? fullName;
@@ -9,6 +11,7 @@ class OcrResult {
   final String? rawText;
   /// Nguồn OCR: `OCR API`, `Apple Vision`, `ML Kit`, …
   final String? ocrSource;
+  final OpenAiUsageInfo? openAiUsage;
 
   /// Ngưỡng từ API — dưới mức này số giấy tờ có thể đọc sai (mực mờ, mất nét).
   static const lowConfidenceThreshold = 0.65;
@@ -22,6 +25,7 @@ class OcrResult {
     this.nameConfidence,
     this.rawText,
     this.ocrSource,
+    this.openAiUsage,
   });
 
   bool get hasRawText => rawText != null && rawText!.trim().isNotEmpty;
@@ -35,6 +39,7 @@ class OcrResult {
     double? nameConfidence,
     String? rawText,
     String? ocrSource,
+    OpenAiUsageInfo? openAiUsage,
   }) {
     return OcrResult(
       identityNo: identityNo ?? this.identityNo,
@@ -45,6 +50,7 @@ class OcrResult {
       nameConfidence: nameConfidence ?? this.nameConfidence,
       rawText: rawText ?? this.rawText,
       ocrSource: ocrSource ?? this.ocrSource,
+      openAiUsage: openAiUsage ?? this.openAiUsage,
     );
   }
 
@@ -79,6 +85,11 @@ class OcrResult {
 
     final rawText = (data['rawText'] ?? data['raw_text'])?.toString().trim();
 
+    final rawUsage = data['openAiUsage'];
+    final openAiUsage = rawUsage is Map
+        ? OpenAiUsageInfo.fromJson(Map<String, dynamic>.from(rawUsage))
+        : null;
+
     return OcrResult(
       identityNo: identityNo?.trim().isEmpty == true ? null : identityNo?.trim(),
       fullName: trimmedName?.isEmpty == true ? null : trimmedName,
@@ -90,6 +101,7 @@ class OcrResult {
       nameConfidence: _parseConfidence(data['nameConfidence']),
       rawText: rawText?.isEmpty == true ? null : rawText,
       ocrSource: 'OCR API',
+      openAiUsage: openAiUsage,
     );
   }
 

@@ -22,11 +22,32 @@ void main() {
     );
 
     expect(find.text('Loại giấy tờ'), findsOneWidget);
-    expect(find.byType(RadioListTile<String>), findsNWidgets(3));
+    expect(find.byType(Radio<String>), findsNWidgets(3));
 
     await tester.tap(find.text('CMND'));
     await tester.pumpAndSettle();
 
     expect(selected, 'CMND');
+  });
+
+  testWidgets('IdentityTypeRadioGroup fits narrow width', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 280,
+              child: IdentityTypeRadioGroup(
+                value: 'CCCD',
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(Radio<String>), findsNWidgets(3));
+    expect(tester.takeException(), isNull);
   });
 }

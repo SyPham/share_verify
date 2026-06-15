@@ -4,9 +4,11 @@ import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dart';
 import 'package:share_verify/core/data/dto/name_autocomplete_dtos.dart';
+import 'package:share_verify/core/models/open_ai_usage_info.dart';
 import 'package:share_verify/core/models/ocr_result.dart';
 import 'package:share_verify/core/utils/identity_type_utils.dart';
 import 'package:share_verify/core/widgets/name_autocomplete_field.dart';
+import 'package:share_verify/core/widgets/open_ai_usage_banner.dart';
 import 'package:share_verify/core/widgets/registration_no_autocomplete_field.dart';
 
 class CaptureIdentityReviewFields extends StatelessWidget {
@@ -18,6 +20,7 @@ class CaptureIdentityReviewFields extends StatelessWidget {
   final double? idConfidence;
   final double? nameConfidence;
   final String? ocrRawText;
+  final OpenAiUsageInfo? openAiUsage;
   final bool fromQr;
   final VoidCallback? onRerunOcr;
   final VoidCallback? onFieldEdited;
@@ -36,6 +39,7 @@ class CaptureIdentityReviewFields extends StatelessWidget {
     this.idConfidence,
     this.nameConfidence,
     this.ocrRawText,
+    this.openAiUsage,
     this.fromQr = false,
     this.onRerunOcr,
     this.onFieldEdited,
@@ -136,6 +140,10 @@ class CaptureIdentityReviewFields extends StatelessWidget {
               color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
+          if (openAiUsage != null) ...[
+            const SizedBox(height: SvSpacing.sm),
+            OpenAiUsageBanner(usage: openAiUsage!),
+          ],
           if (onRerunOcr != null) ...[
             const SizedBox(height: SvSpacing.sm),
             SizedBox(
