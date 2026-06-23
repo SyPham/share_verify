@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/controllers/dashboard_controller.dart';
+import 'package:share_verify/core/screens/dashboard/received_support_screen.dart';
+import 'package:share_verify/core/screens/dashboard/warning_recipients_screen.dart';
 import 'package:share_verify/core/screens/settings/settings_screen.dart';
 import 'package:share_verify/core/screens/shareholders/shareholders_list_screen.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
 import 'package:share_verify/core/widgets/sv_kpi_card.dart';
 
-const String _dashboardReceivedRoute = '/dashboard/received';
-const String _dashboardWarningsRoute = '/dashboard/warnings';
 const String _shareholdersRoute = '/shareholders';
 
 class DashboardScreen extends GetView<DashboardController> {
@@ -59,7 +59,7 @@ class DashboardScreen extends GetView<DashboardController> {
                       backgroundColor: colorScheme.tertiaryContainer,
                       foregroundColor: colorScheme.onTertiaryContainer,
                       icon: Icons.check_circle,
-                      onTap: () => Get.toNamed(_dashboardReceivedRoute),
+                      onTap: () => Get.toNamed(ReceivedSupportScreen.routeName),
                     ),
                     SvKpiCard(
                       label: 'Chưa nhận hỗ trợ',
@@ -78,7 +78,8 @@ class DashboardScreen extends GetView<DashboardController> {
                       backgroundColor: colorScheme.secondaryContainer,
                       foregroundColor: colorScheme.onSecondaryContainer,
                       icon: Icons.warning_amber_rounded,
-                      onTap: () => Get.toNamed(_dashboardWarningsRoute),
+                      onTap: () =>
+                          Get.toNamed(WarningRecipientsScreen.routeName),
                     ),
                     SvKpiCard(
                       label: 'Cổ đông đã check-in',
@@ -119,9 +120,9 @@ class _DashboardErrorBanner extends StatelessWidget {
       ),
       child: Text(
         message,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onErrorContainer,
-            ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodyMedium?.copyWith(color: colorScheme.onErrorContainer),
       ),
     );
   }

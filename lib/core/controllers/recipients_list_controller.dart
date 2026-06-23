@@ -7,9 +7,14 @@ import 'package:share_verify/core/repositories/recipient_repository.dart';
 
 class RecipientsListController extends GetxController {
   final RecipientRepository _recipientRepository;
+  final bool groupByPerson;
+  final int? minLinkedMcd;
 
-  RecipientsListController({RecipientRepository? recipientRepository})
-      : _recipientRepository =
+  RecipientsListController({
+    this.groupByPerson = false,
+    this.minLinkedMcd,
+    RecipientRepository? recipientRepository,
+  }) : _recipientRepository =
             recipientRepository ?? Get.find<RecipientRepository>();
 
   final items = <RecipientListItem>[].obs;
@@ -47,6 +52,8 @@ class RecipientsListController extends GetxController {
         keyword: searchQuery.value,
         page: _page,
         pageSize: _pageSize,
+        groupByPerson: groupByPerson,
+        minLinkedMcd: minLinkedMcd,
       );
       items.value = page.items;
       totalCount.value = page.totalCount;
@@ -72,6 +79,8 @@ class RecipientsListController extends GetxController {
         keyword: searchQuery.value,
         page: nextPage,
         pageSize: _pageSize,
+        groupByPerson: groupByPerson,
+        minLinkedMcd: minLinkedMcd,
       );
       items.addAll(page.items);
       totalCount.value = page.totalCount;
