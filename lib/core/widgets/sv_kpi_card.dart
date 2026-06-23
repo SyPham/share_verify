@@ -36,10 +36,14 @@ class SvKpiCard extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: foregroundColor),
             const SizedBox(width: 4),
-            Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: foregroundColor.withValues(alpha: 0.9),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: foregroundColor.withValues(alpha: 0.9),
+                ),
               ),
             ),
           ],

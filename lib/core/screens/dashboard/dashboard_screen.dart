@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/controllers/dashboard_controller.dart';
-import 'package:share_verify/core/screens/dashboard/components/progress_ring_section.dart';
 import 'package:share_verify/core/screens/settings/settings_screen.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
-import 'package:share_verify/core/widgets/sv_card.dart';
-import 'package:share_verify/core/screens/recipients/recipients_list_screen.dart';
-import 'package:share_verify/core/utils/dashboard_format.dart';
 import 'package:share_verify/core/widgets/sv_kpi_card.dart';
+
+const String _dashboardReceivedRoute = '/dashboard/received';
+const String _dashboardWarningsRoute = '/dashboard/warnings';
+const String _shareholdersRoute = '/shareholders';
+
+class ShareholdersListArgs {
+  final bool received;
+
+  const ShareholdersListArgs({required this.received});
+}
 
 class DashboardScreen extends GetView<DashboardController> {
   const DashboardScreen({super.key});
@@ -25,7 +31,6 @@ class DashboardScreen extends GetView<DashboardController> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final completionFraction = controller.completionFraction;
         return RefreshIndicator(
           onRefresh: controller.refresh,
           child: SingleChildScrollView(
@@ -45,72 +50,54 @@ class DashboardScreen extends GetView<DashboardController> {
                   ),
                   const SizedBox(height: SvSpacing.md),
                 ],
-              ProgressRingSection(
-                progress: DashboardFormat.completionRingValue(completionFraction),
-                percentText: DashboardFormat.completionPercentLabel(
-                  completionFraction,
-                ),
-              ),
-              const SizedBox(height: SvSpacing.md),
-              SvCard(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: SvSpacing.cardPadding,
-                  vertical: SvSpacing.xs,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                GridView.count(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: SvSpacing.sm,
+                  mainAxisSpacing: SvSpacing.sm,
+                  childAspectRatio: 1.4,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    Text('Tổng số cổ đông', style: Theme.of(context).textTheme.titleMedium),
-                    Text(
-                      _formatDashboardNumber(controller.total),
-                      style: Theme.of(
-                        context,
-                      ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                    SvKpiCard(
+                      label: 'Đã nhận hỗ trợ',
+                      value: controller.receivedCount.toString(),
+                      backgroundColor: colorScheme.tertiaryContainer,
+                      foregroundColor: colorScheme.onTertiaryContainer,
+                      icon: Icons.check_circle,
+                      onTap: () => Get.toNamed(_dashboardReceivedRoute),
+                    ),
+                    SvKpiCard(
+                      label: 'Chưa nhận hỗ trợ',
+                      value: controller.notReceivedCount.toString(),
+                      backgroundColor: colorScheme.errorContainer,
+                      foregroundColor: colorScheme.onErrorContainer,
+                      icon: Icons.pending_actions,
+                      onTap: () => Get.toNamed(
+                        _shareholdersRoute,
+                        arguments: const ShareholdersListArgs(received: false),
+                      ),
+                    ),
+                    SvKpiCard(
+                      label: 'Cảnh báo',
+                      value: controller.warningCount.toString(),
+                      backgroundColor: colorScheme.secondaryContainer,
+                      foregroundColor: colorScheme.onSecondaryContainer,
+                      icon: Icons.warning_amber_rounded,
+                      onTap: () => Get.toNamed(_dashboardWarningsRoute),
+                    ),
+                    SvKpiCard(
+                      label: 'Cổ đông đã check-in',
+                      value: controller.receivedCount.toString(),
+                      backgroundColor: colorScheme.primaryContainer,
+                      foregroundColor: colorScheme.onPrimaryContainer,
+                      icon: Icons.how_to_reg,
+                      onTap: () => Get.toNamed(
+                        _shareholdersRoute,
+                        arguments: const ShareholdersListArgs(received: true),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: SvSpacing.md),
-              GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: SvSpacing.sm,
-                mainAxisSpacing: SvSpacing.sm,
-                childAspectRatio: 1.55,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  SvKpiCard(
-                    label: 'Đã nhận hỗ trợ',
-                    value: controller.receivedCount.toString(),
-                    backgroundColor: colorScheme.tertiaryContainer,
-                    foregroundColor: colorScheme.onTertiaryContainer,
-                    progress: controller.total == 0
-                        ? 0
-                        : controller.receivedCount / controller.total,
-                    progressColor: colorScheme.onTertiaryContainer,
-                    icon: Icons.check_circle,
-                  ),
-                  SvKpiCard(
-                    label: 'Chưa nhận hỗ trợ',
-                    value: controller.notReceivedCount.toString(),
-                    backgroundColor: colorScheme.errorContainer,
-                    foregroundColor: colorScheme.onErrorContainer,
-                    progress: controller.total == 0
-                        ? 0
-                        : controller.notReceivedCount / controller.total,
-                    progressColor: colorScheme.error,
-                    icon: Icons.pending_actions,
-                  ),
-                ],
-              ),
-              const SizedBox(height: SvSpacing.md),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => Get.toNamed(RecipientsListScreen.routeName),
-                  child: const Text('Xem danh sách người nhận'),
-                ),
-              ),
               ],
             ),
           ),
@@ -118,7 +105,6 @@ class DashboardScreen extends GetView<DashboardController> {
       }),
     );
   }
-
 }
 
 class _DashboardErrorBanner extends StatelessWidget {
@@ -144,17 +130,4 @@ class _DashboardErrorBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-String _formatDashboardNumber(int value) {
-  final source = value.toString();
-  final buffer = StringBuffer();
-  for (int i = 0; i < source.length; i++) {
-    final indexFromEnd = source.length - i;
-    buffer.write(source[i]);
-    if (indexFromEnd > 1 && indexFromEnd % 3 == 1) {
-      buffer.write(',');
-    }
-  }
-  return buffer.toString();
 }
