@@ -10,14 +10,20 @@ class RecipientRemoteSource {
     String keyword = '',
     int page = 1,
     int pageSize = 20,
+    bool groupByPerson = false,
+    int? minLinkedMcd,
   }) async {
+    final queryParameters = <String, dynamic>{
+      'keyword': keyword,
+      'page': page,
+      'pageSize': pageSize,
+      if (groupByPerson) 'groupBy': 'person',
+      if (minLinkedMcd != null) 'minLinkedMcd': minLinkedMcd,
+    };
+
     final response = await _client.get<Map<String, dynamic>>(
       '/api/recipients',
-      queryParameters: {
-        'keyword': keyword,
-        'page': page,
-        'pageSize': pageSize,
-      },
+      queryParameters: queryParameters,
     );
     return RecipientSearchPageDto.fromJson(response.data ?? {});
   }

@@ -24,6 +24,8 @@ abstract class RecipientRepository {
     String keyword = '',
     int page = 1,
     int pageSize = 20,
+    bool groupByPerson = false,
+    int? minLinkedMcd,
   });
 
   Future<RecipientDetail> getDetail(int personId);
@@ -40,11 +42,15 @@ class RecipientRepositoryImpl implements RecipientRepository {
     String keyword = '',
     int page = 1,
     int pageSize = 20,
+    bool groupByPerson = false,
+    int? minLinkedMcd,
   }) async {
     final pageDto = await _remoteSource.search(
       keyword: keyword,
       page: page,
       pageSize: pageSize,
+      groupByPerson: groupByPerson,
+      minLinkedMcd: minLinkedMcd,
     );
     return RecipientSearchPage(
       items: pageDto.items.map(RecipientMapper.fromListDto).toList(),

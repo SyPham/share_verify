@@ -1,16 +1,17 @@
-import 'package:share_verify/core/models/linked_shareholder.dart';
-import 'package:share_verify/core/models/travel_support_info.dart';
+import 'package:share_verify/core/models/recipient_check_in.dart';
 
 class RecipientDetail {
   final int personId;
   final String personFullName;
-  final TravelSupportInfo travelSupport;
-  final List<LinkedShareholder> linkedShareholders;
+  final String? identityNo;
+  final String? identityType;
+  final List<RecipientCheckIn> checkIns;
 
   const RecipientDetail({
     required this.personId,
     required this.personFullName,
-    required this.travelSupport,
-    required this.linkedShareholders,
+    this.identityNo,
+    this.identityType,
+    required this.checkIns,
   });
 }

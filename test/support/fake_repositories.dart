@@ -7,8 +7,12 @@ import 'package:share_verify/core/models/attendance_type.dart';
 import 'package:share_verify/core/models/dashboard_stats.dart';
 import 'package:share_verify/core/models/identity_verification.dart';
 import 'package:share_verify/core/models/payment_status.dart';
+import 'package:share_verify/core/models/recipient_check_in.dart';
+import 'package:share_verify/core/models/recipient_detail.dart';
+import 'package:share_verify/core/models/recipient_list_item.dart';
 import 'package:share_verify/core/models/shareholder.dart';
 import 'package:share_verify/core/repositories/dashboard_repository.dart';
+import 'package:share_verify/core/repositories/recipient_repository.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/repositories/travel_support_repository.dart';
 import 'package:share_verify/core/utils/allowance_amount.dart';
@@ -203,6 +207,55 @@ class FakeShareholderRepository implements ShareholderRepository {
       }
     }
     return null;
+  }
+}
+
+class FakeRecipientRepository implements RecipientRepository {
+  RecipientSearchPage searchResult = const RecipientSearchPage(
+    items: [],
+    totalCount: 0,
+    page: 1,
+    pageSize: 20,
+  );
+  RecipientDetail? detailResult;
+  Object? searchError;
+  Object? detailError;
+
+  String lastKeyword = '';
+  int lastPage = 1;
+  int lastPageSize = 20;
+  bool lastGroupByPerson = false;
+  int? lastMinLinkedMcd;
+  int? lastPersonId;
+
+  @override
+  Future<RecipientSearchPage> search({
+    String keyword = '',
+    int page = 1,
+    int pageSize = 20,
+    bool groupByPerson = false,
+    int? minLinkedMcd,
+  }) async {
+    lastKeyword = keyword;
+    lastPage = page;
+    lastPageSize = pageSize;
+    lastGroupByPerson = groupByPerson;
+    lastMinLinkedMcd = minLinkedMcd;
+
+    if (searchError != null) throw searchError!;
+    return searchResult;
+  }
+
+  @override
+  Future<RecipientDetail> getDetail(int personId) async {
+    lastPersonId = personId;
+    if (detailError != null) throw detailError!;
+    return detailResult ??
+        const RecipientDetail(
+          personId: 0,
+          personFullName: '',
+          checkIns: <RecipientCheckIn>[],
+        );
   }
 }
 

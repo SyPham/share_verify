@@ -45,25 +45,26 @@ class RecipientListItemDto {
   }
 }
 
-class LinkedShareholderDto {
+class RecipientCheckInDto {
   final String mcd;
-  final String fullName;
+  final String shareholderFullName;
   final num totalShares;
-  final bool isReceiveMcd;
+  final Map<String, dynamic> travelSupportJson;
 
-  const LinkedShareholderDto({
+  const RecipientCheckInDto({
     required this.mcd,
-    required this.fullName,
+    required this.shareholderFullName,
     required this.totalShares,
-    this.isReceiveMcd = false,
+    required this.travelSupportJson,
   });
 
-  factory LinkedShareholderDto.fromJson(Map<String, dynamic> json) {
-    return LinkedShareholderDto(
+  factory RecipientCheckInDto.fromJson(Map<String, dynamic> json) {
+    return RecipientCheckInDto(
       mcd: json['mcd'] as String? ?? '',
-      fullName: json['fullName'] as String? ?? '',
+      shareholderFullName: json['shareholderFullName'] as String? ?? '',
       totalShares: json['totalShares'] as num? ?? 0,
-      isReceiveMcd: json['isReceiveMcd'] as bool? ?? false,
+      travelSupportJson:
+          json['travelSupport'] as Map<String, dynamic>? ?? const {},
     );
   }
 }
@@ -71,28 +72,28 @@ class LinkedShareholderDto {
 class RecipientDetailDto {
   final int personId;
   final String personFullName;
-  final Map<String, dynamic> travelSupportJson;
-  final List<LinkedShareholderDto> linkedShareholders;
+  final String? identityNo;
+  final String? identityType;
+  final List<RecipientCheckInDto> checkIns;
 
   const RecipientDetailDto({
     required this.personId,
     required this.personFullName,
-    required this.travelSupportJson,
-    required this.linkedShareholders,
+    this.identityNo,
+    this.identityType,
+    required this.checkIns,
   });
 
   factory RecipientDetailDto.fromJson(Map<String, dynamic> json) {
-    final rawLinked = json['linkedShareholders'] as List<dynamic>? ?? [];
+    final rawCheckIns = json['checkIns'] as List<dynamic>? ?? [];
     return RecipientDetailDto(
       personId: RecipientListItemDto._readInt(json['personId']),
       personFullName: json['personFullName'] as String? ?? '',
-      travelSupportJson:
-          json['travelSupport'] as Map<String, dynamic>? ?? const {},
-      linkedShareholders: rawLinked
-          .map(
-            (item) =>
-                LinkedShareholderDto.fromJson(item as Map<String, dynamic>),
-          )
+      identityNo: json['identityNo'] as String?,
+      identityType: json['identityType'] as String?,
+      checkIns: rawCheckIns
+          .map((item) =>
+              RecipientCheckInDto.fromJson(item as Map<String, dynamic>))
           .toList(),
     );
   }
