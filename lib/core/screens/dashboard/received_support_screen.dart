@@ -18,21 +18,21 @@ class ReceivedSupportScreen extends StatelessWidget {
           centerTitle: true,
           bottom: const TabBar(
             tabs: [
-              Tab(text: 'Theo cổ đông'),
               Tab(text: 'Theo người nhận'),
+              Tab(text: 'Theo cổ đông'),
             ],
           ),
         ),
         body: const TabBarView(
           children: [
-            ShareholdersListScreen(
-              embedded: true,
-              controllerTag: DashboardDrilldownBinding.receivedShareholdersTag,
-            ),
             RecipientsListScreen(
               embedded: true,
               title: 'Người nhận đã check-in',
               controllerTag: DashboardDrilldownBinding.receivedRecipientsTag,
+            ),
+            ShareholdersListScreen(
+              embedded: true,
+              controllerTag: DashboardDrilldownBinding.receivedShareholdersTag,
             ),
           ],
         ),

@@ -17,7 +17,7 @@ class RecipientRemoteSource {
       'keyword': keyword,
       'page': page,
       'pageSize': pageSize,
-      if (groupByPerson) 'groupBy': 'person',
+      if (groupByPerson) 'groupByPerson': true,
       if (minLinkedMcd != null) 'minLinkedMcd': minLinkedMcd,
     };
 
