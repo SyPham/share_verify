@@ -24,10 +24,33 @@ class RecentTravelSupportDto {
   }
 }
 
+
+class IdentityCheckUsedShareholderDto {
+  final String mcd;
+  final String? fullName;
+  final int shares;
+
+  const IdentityCheckUsedShareholderDto({
+    required this.mcd,
+    this.fullName,
+    this.shares = 0,
+  });
+
+  factory IdentityCheckUsedShareholderDto.fromJson(Map<String, dynamic> json) {
+    final sharesRaw = json['shares'] ?? json['totalShares'];
+    return IdentityCheckUsedShareholderDto(
+      mcd: json['mcd'] as String? ?? '',
+      fullName: json['fullName'] as String?,
+      shares: sharesRaw is num ? sharesRaw.round() : 0,
+    );
+  }
+}
+
 class IdentityCheckResultDto {
   final bool alreadyUsed;
   final String? usedForMcd;
   final List<String> usedForMcds;
+  final List<IdentityCheckUsedShareholderDto> usedForShareholders;
   final String? receiverName;
   final String? usedIdentityType;
   final String? usedIdentityNo;
@@ -39,6 +62,7 @@ class IdentityCheckResultDto {
     required this.alreadyUsed,
     this.usedForMcd,
     this.usedForMcds = const [],
+    this.usedForShareholders = const [],
     this.receiverName,
     this.usedIdentityType,
     this.usedIdentityNo,
@@ -54,11 +78,20 @@ class IdentityCheckResultDto {
     final usedForMcds = rawMcds != null
         ? rawMcds.map((e) => e as String).toList()
         : (usedForMcd != null ? [usedForMcd] : <String>[]);
+    final rawShareholders = json['usedForShareholders'] as List<dynamic>?;
+    final usedForShareholders = rawShareholders != null
+        ? rawShareholders
+            .map((e) => IdentityCheckUsedShareholderDto.fromJson(
+                  e as Map<String, dynamic>,
+                ))
+            .toList()
+        : <IdentityCheckUsedShareholderDto>[];
 
     return IdentityCheckResultDto(
       alreadyUsed: json['alreadyUsed'] as bool? ?? false,
       usedForMcd: usedForMcd,
       usedForMcds: usedForMcds,
+      usedForShareholders: usedForShareholders,
       receiverName: json['receiverName'] as String?,
       usedIdentityType: json['usedIdentityType'] as String?,
       usedIdentityNo: json['usedIdentityNo'] as String?,
@@ -67,6 +100,21 @@ class IdentityCheckResultDto {
           receiveTimeRaw == null ? null : DateTime.parse(receiveTimeRaw),
       message: json['message'] as String?,
     );
+  }
+
+  static List<IdentityCheckUsedShareholderDto> mergeUsedShareholders(
+    IdentityCheckResultDto primary,
+    IdentityCheckResultDto legacy,
+  ) {
+    final map = <String, IdentityCheckUsedShareholderDto>{};
+    for (final item in [
+      ...primary.usedForShareholders,
+      ...legacy.usedForShareholders,
+    ]) {
+      if (item.mcd.isEmpty) continue;
+      map.putIfAbsent(item.mcd.toUpperCase(), () => item);
+    }
+    return map.values.toList();
   }
 }
 

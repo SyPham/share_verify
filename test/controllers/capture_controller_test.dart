@@ -236,7 +236,7 @@ Họ và tên: Trần Thị B
     expect(controller.errorMessage.value, 'Người này đã nhận phụ cấp.');
   });
 
-  test('confirm in identity mode shows usage warning when already used', () async {
+  test('confirm in identity mode blocks until identity usage acknowledged', () async {
     travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
       alreadyUsed: true,
       usedForMcd: 'SH0002',
@@ -260,12 +260,53 @@ Họ và tên: Trần Thị B
 
     await controller.confirm();
 
-    expect(controller.hasIdentityUsageWarning, isTrue);
+    expect(controller.identityCheckResult.value?.alreadyUsed, isTrue);
     expect(controller.errorMessage.value, isNull);
     expect(travelSupportRepository.checkIdentityCallCount, 1);
 
+    controller.acknowledgeIdentityUsageForTesting();
     await controller.confirm();
 
-    expect(travelSupportRepository.checkIdentityCallCount, 2);
+    expect(travelSupportRepository.checkIdentityCallCount, 1);
+    expect(controller.identityCheckResult.value?.alreadyUsed, isTrue);
   });
+
+  test('editing CMND identity number after OCR rechecks shareholder usage', () async {
+    travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
+      alreadyUsed: false,
+    );
+
+    final controller = CaptureController(
+      travelSupportRepository: travelSupportRepository,
+      ocrService: ocrService,
+      shareholderOverride: TestData.shareholders.first,
+      modeOverride: CaptureMode.identity,
+      identityTypeOverride: 'CMND',
+      intentOverride: CaptureIntent.ocr,
+    );
+    controller.onInit();
+    controller.hasCaptured.value = true;
+    controller.imageBytes.value = Uint8List.fromList([1, 2, 3]);
+    controller.identityNoController.text = '12345678';
+    controller.receiverNameController.text = 'Trần Thị B';
+
+    controller.onIdentityFieldsEdited();
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    expect(travelSupportRepository.checkIdentityCallCount, 1);
+
+    travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
+      alreadyUsed: true,
+      usedForMcd: 'SH0002',
+      usedForMcds: ['SH0002'],
+      message: 'Số CMND đã được sử dụng',
+    );
+    controller.identityNoController.text = '123456789';
+    controller.onIdentityFieldsEdited();
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    expect(travelSupportRepository.checkIdentityCallCount, 2);
+    expect(controller.identityCheckResult.value?.alreadyUsed, isTrue);
+  });
+
 }

@@ -34,9 +34,7 @@ class CaptureEvidenceScreen extends GetView<CaptureController> {
       final rawBytes = controller.rawImageBytes.value;
       final showOcrReview =
           phase == CaptureUiPhase.review && controller.needsOcrReview;
-      final confirmLabel = controller.hasIdentityUsageWarning
-          ? 'Vẫn tiếp tục'
-          : 'Xác Nhận';
+      const confirmLabel = 'Xác Nhận';
 
       return Scaffold(
         resizeToAvoidBottomInset: true,
@@ -203,7 +201,7 @@ class _CaptureBottomPanel extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (showOcrReview)
+        if (showOcrReview) ...[
           CaptureIdentityReviewFields(
             nameController: controller.receiverNameController,
             identityNoController: controller.identityNoController,
@@ -214,7 +212,6 @@ class _CaptureBottomPanel extends StatelessWidget {
             isOcrProcessing: isOcrProcessing,
             idConfidence: controller.ocrIdConfidence.value,
             nameConfidence: controller.ocrNameConfidence.value,
-            ocrRawText: controller.ocrRawText.value,
             openAiUsage: openAiUsage,
             fromQr: controller.isQrPrefilled,
             onRerunOcr: controller.isQrPrefilled ? null : controller.rerunOcr,
@@ -255,9 +252,20 @@ class _CaptureBottomPanel extends StatelessWidget {
               if (controller.receiverNameController.text.trim().isEmpty) {
                 controller.receiverNameController.text = item.fullName;
               }
+              controller.onIdentityFieldsEdited();
             },
           ),
-        if (phase == CaptureUiPhase.review) const CaptureIdentityUsageWarning(),
+          Obx(() {
+            if (controller.isCheckingIdentity.value) {
+              return const Padding(
+                padding: EdgeInsets.only(bottom: SvSpacing.sm),
+                child: LinearProgressIndicator(),
+              );
+            }
+            return const SizedBox.shrink();
+          }),
+          const CaptureIdentityUsageWarning(),
+        ],
         CaptureOverlayCard(
           shareholder: controller.shareholder,
           phase: phase,

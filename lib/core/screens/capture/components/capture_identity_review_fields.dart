@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dart';
@@ -19,7 +18,6 @@ class CaptureIdentityReviewFields extends StatelessWidget {
   final bool isOcrProcessing;
   final double? idConfidence;
   final double? nameConfidence;
-  final String? ocrRawText;
   final OpenAiUsageInfo? openAiUsage;
   final bool fromQr;
   final VoidCallback? onRerunOcr;
@@ -38,7 +36,6 @@ class CaptureIdentityReviewFields extends StatelessWidget {
     this.isOcrProcessing = false,
     this.idConfidence,
     this.nameConfidence,
-    this.ocrRawText,
     this.openAiUsage,
     this.fromQr = false,
     this.onRerunOcr,
@@ -371,13 +368,6 @@ class CaptureIdentityReviewFields extends StatelessWidget {
                 },
               ),
           ],
-          if (!fromQr && ocrRawText != null && ocrRawText!.trim().isNotEmpty) ...[
-            const SizedBox(height: SvSpacing.sm),
-            _OcrRawTextPanel(
-              text: ocrRawText!,
-              isOcrProcessing: isOcrProcessing,
-            ),
-          ],
         ],
       ),
     );
@@ -389,83 +379,6 @@ class CaptureIdentityReviewFields extends StatelessWidget {
       'CCCD' => 'Nhập số CMND cũ (nếu có) · $_manualEntryHint',
       _ => _manualEntryHint,
     };
-  }
-}
-
-class _OcrRawTextPanel extends StatelessWidget {
-  const _OcrRawTextPanel({
-    required this.text,
-    required this.isOcrProcessing,
-  });
-
-  final String text;
-  final bool isOcrProcessing;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Văn bản OCR đọc được',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: isOcrProcessing
-                  ? null
-                  : () {
-                      Clipboard.setData(ClipboardData(text: text));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Đã sao chép văn bản OCR'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                    },
-              icon: const Icon(Icons.copy_outlined, size: 18),
-              label: const Text('Sao chép'),
-            ),
-          ],
-        ),
-        const SizedBox(height: SvSpacing.xs),
-        Text(
-          'Nếu họ tên hoặc số giấy tờ đọc sai, chọn hoặc sao chép từ đây để nhập tay.',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: SvSpacing.xs),
-        Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(maxHeight: 160),
-          padding: const EdgeInsets.all(SvSpacing.sm),
-          decoration: BoxDecoration(
-            color: SvPalette.surface,
-            borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
-            border: Border.all(color: SvPalette.outline),
-          ),
-          child: SingleChildScrollView(
-            child: SelectableText(
-              text,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: SvPalette.onSurface,
-                fontFamily: 'monospace',
-                height: 1.4,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
   }
 }
 

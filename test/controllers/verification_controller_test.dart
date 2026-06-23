@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
@@ -7,6 +8,7 @@ import 'package:share_verify/core/data/dto/travel_support_dtos.dart';
 import 'package:share_verify/core/models/identity_verification.dart';
 import 'package:share_verify/core/models/payment_status.dart';
 import 'package:share_verify/core/models/shareholder.dart';
+import 'package:share_verify/core/models/verification_step.dart';
 import 'package:share_verify/core/network/api_exception.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/services/barcode_scanner_service.dart';
@@ -229,6 +231,7 @@ void main() {
     expect(c.manualPhotoPath.value, 'uploads/test.jpg');
     expect(c.isIdentityReady, isTrue);
     expect(travelSupportRepository.checkIdentityCallCount, 1);
+    expect(c.verificationStep.value, VerificationStep.identity);
   });
 
   test('applyCaptureResult fills manual form for CMND capture', () async {
@@ -247,6 +250,7 @@ void main() {
     expect(c.manualIdController.text, '123456789');
     expect(c.manualPhotoPath.value, 'uploads/cmnd.jpg');
     expect(c.isIdentityReady, isTrue);
+    expect(c.verificationStep.value, VerificationStep.evidence);
   });
 
   test('applyCaptureResult fills manual form for Passport capture', () async {
@@ -264,6 +268,17 @@ void main() {
     expect(c.manualIdentityType.value, 'PASSPORT');
     expect(c.manualIdController.text, 'B1234567');
     expect(c.isIdentityReady, isTrue);
+    expect(c.verificationStep.value, VerificationStep.evidence);
+  });
+
+  test('advanceToBarcodeStep when manual form has photo', () async {
+    final c = createController();
+    c.verificationStep.value = VerificationStep.evidence;
+    c.manualNameController.text = 'Nguyễn Văn A';
+    c.manualIdController.text = '001234567890';
+    c.manualPhotoPath.value = 'uploads/test.jpg';
+    await c.advanceToBarcodeStep();
+    expect(c.verificationStep.value, VerificationStep.barcode);
   });
 
   test('canProceedToBarcodeScreen when manual form has photo', () {
@@ -275,6 +290,55 @@ void main() {
     expect(c.isIdentityReady, isTrue);
     expect(c.canProceedToBarcodeScreen, isTrue);
   });
+  test('manual id edit after CMND capture rechecks identity usage', () async {
+    final c = createController();
+    await c.applyCaptureResult(
+      const IdentityVerification(
+        identityNo: '12345678',
+        identityType: 'CMND',
+        receiverName: 'Trần Văn B',
+        photoPath: 'uploads/cmnd.jpg',
+      ),
+    );
+
+    expect(c.verificationStep.value, VerificationStep.evidence);
+    final initialChecks = travelSupportRepository.checkIdentityCallCount;
+
+    c.goBackStep();
+    travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
+      alreadyUsed: true,
+      usedForMcd: 'SH0002',
+      usedForMcds: ['SH0002'],
+      message: 'Số CMND đã được sử dụng',
+    );
+
+    c.manualIdController.value = const TextEditingValue(text: '123456789');
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+
+    expect(travelSupportRepository.checkIdentityCallCount, greaterThan(initialChecks));
+    expect(c.identityCheckResult.value?.alreadyUsed, isTrue);
+  });
+
+  test('advanceToEvidenceStep flushes pending identity usage check', () async {
+    travelSupportRepository.checkIdentityResult = const IdentityCheckResultDto(
+      alreadyUsed: true,
+      usedForMcd: 'SH0002',
+      usedForMcds: ['SH0002'],
+      message: 'Số CMND đã được sử dụng',
+    );
+
+    final c = createController();
+    c.verificationStep.value = VerificationStep.identity;
+    c.manualIdentityType.value = 'CMND';
+    c.manualNameController.text = 'Trần Văn B';
+    c.manualIdController.text = '123456789';
+
+    await c.advanceToEvidenceStep();
+
+    expect(travelSupportRepository.checkIdentityCallCount, greaterThan(0));
+    expect(c.identityCheckResult.value?.alreadyUsed, isTrue);
+  });
+
 }
 
 class _ThrowingShareholderRepository implements ShareholderRepository {
@@ -314,4 +378,5 @@ class _ThrowingShareholderRepository implements ShareholderRepository {
   }) async {
     throw const ApiException(message: 'Server error', statusCode: 500);
   }
+
 }
