@@ -357,6 +357,16 @@ class _ThrowingShareholderRepository implements ShareholderRepository {
   }
 
   @override
+  Future<ShareholderSearchPageDto> listShareholders({
+    required bool received,
+    String keyword = '',
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    throw const ApiException(message: 'Server error', statusCode: 500);
+  }
+
+  @override
   Future<Shareholder?> findByMcd(String mcd) async {
     throw const ApiException(message: 'Server error', statusCode: 500);
   }
