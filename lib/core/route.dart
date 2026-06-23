@@ -1,11 +1,14 @@
 import 'package:get/get.dart';
 import 'package:share_verify/core/bindings/open_ai_stats_binding.dart';
 import 'package:share_verify/core/bindings/recipients_binding.dart';
+import 'package:share_verify/core/bindings/shareholders_binding.dart';
 import 'package:share_verify/core/bindings/settings_binding.dart';
 import 'package:share_verify/core/bindings/shell_binding.dart';
 import 'package:share_verify/core/screens/openai_stats/open_ai_stats_screen.dart';
 import 'package:share_verify/core/screens/recipients/recipient_detail_screen.dart';
 import 'package:share_verify/core/screens/recipients/recipients_list_screen.dart';
+import 'package:share_verify/core/screens/shareholders/shareholder_detail_screen.dart';
+import 'package:share_verify/core/screens/shareholders/shareholders_list_screen.dart';
 import 'package:share_verify/core/screens/capture/capture_evidence_screen.dart';
 import 'package:share_verify/core/screens/settings/settings_screen.dart';
 import 'package:share_verify/core/screens/shell/shell_screen.dart';
@@ -56,6 +59,16 @@ class AppRoutes {
           name: RecipientDetailScreen.routeName,
           page: () => const RecipientDetailScreen(),
           binding: RecipientDetailBinding(),
+        ),
+        GetPage(
+          name: ShareholdersListScreen.routeName,
+          page: () => const ShareholdersListScreen(),
+          binding: ShareholdersListBinding(),
+        ),
+        GetPage(
+          name: ShareholderDetailScreen.routeName,
+          page: () => const ShareholderDetailScreen(),
+          binding: ShareholderDetailBinding(),
         ),
       ];
 }

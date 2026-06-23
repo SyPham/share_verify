@@ -3,18 +3,13 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/controllers/dashboard_controller.dart';
 import 'package:share_verify/core/screens/settings/settings_screen.dart';
+import 'package:share_verify/core/screens/shareholders/shareholders_list_screen.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
 import 'package:share_verify/core/widgets/sv_kpi_card.dart';
 
 const String _dashboardReceivedRoute = '/dashboard/received';
 const String _dashboardWarningsRoute = '/dashboard/warnings';
 const String _shareholdersRoute = '/shareholders';
-
-class ShareholdersListArgs {
-  final bool received;
-
-  const ShareholdersListArgs({required this.received});
-}
 
 class DashboardScreen extends GetView<DashboardController> {
   const DashboardScreen({super.key});
