@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
-import 'package:share_verify/core/models/linked_shareholder.dart';
+import 'package:share_verify/core/models/recipient_check_in.dart';
 import 'package:share_verify/core/models/recipient_detail.dart';
 import 'package:share_verify/core/models/travel_support_info.dart';
 import 'package:share_verify/core/widgets/evidence_photo_preview.dart';
@@ -17,11 +17,6 @@ class RecipientDetailBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final travelSupport = detail.travelSupport;
-    final amountText =
-        '${NumberFormat('#,###').format(travelSupport.receiveAmount)} ₫';
-    final timeText = DateFormat('HH:mm dd/MM/yyyy')
-        .format(travelSupport.receiveTime.toLocal());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -32,84 +27,142 @@ class RecipientDetailBody extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: SvSpacing.xs),
-        Text(
-          travelSupport.isProxy ? 'Nhận qua ủy quyền' : 'Nhận trực tiếp',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
+        if (detail.identityNo != null && detail.identityNo!.isNotEmpty) ...[
+          const SizedBox(height: SvSpacing.xs),
+          Text(
+            [
+              detail.identityNo,
+              if (detail.identityType != null &&
+                  detail.identityType!.isNotEmpty)
+                detail.identityType,
+            ].whereType<String>().join(' · '),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
-        ),
+        ],
         const SizedBox(height: SvSpacing.md),
-        SvCard(
-          child: Column(
-            children: [
-              SvResultInfoRow(
-                icon: Icons.payments_outlined,
-                label: 'Số tiền đã phát',
-                value: amountText,
+        if (detail.checkIns.isEmpty)
+          Text(
+            'Chưa có lượt check-in nào',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          )
+        else
+          ...detail.checkIns.asMap().entries.map((entry) {
+            final checkInIndex = entry.key + 1;
+            final checkIn = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: SvSpacing.md),
+              child: _CheckInBlock(
+                checkInIndex: checkInIndex,
+                checkIn: checkIn,
+                fallbackReceiverName: detail.personFullName,
               ),
-              const SizedBox(height: SvSpacing.sm),
-              SvResultInfoRow(
-                icon: Icons.schedule,
-                label: 'Thời gian nhận',
-                value: timeText,
-              ),
-              if (travelSupport.operatorName != null &&
-                  travelSupport.operatorName!.isNotEmpty) ...[
-                const SizedBox(height: SvSpacing.sm),
-                SvResultInfoRow(
-                  icon: Icons.badge_outlined,
-                  label: 'Nhân viên xác nhận',
-                  value: travelSupport.operatorName!,
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: SvSpacing.md),
-        Text(
-          'Thông tin người nhận',
-          style: theme.textTheme.labelLarge
-              ?.copyWith(fontWeight: FontWeight.w600, color: Colors.black),
-        ),
-        const SizedBox(height: SvSpacing.sm),
-        ..._buildRecipientCards(travelSupport).map(
-          (card) => Padding(
-            padding: const EdgeInsets.only(bottom: SvSpacing.sm),
-            child: card,
-          ),
-        ),
-        const SizedBox(height: SvSpacing.sm),
-        Text(
-          'Mã cổ đông đã liên kết',
-          style: theme.textTheme.labelLarge
-              ?.copyWith(fontWeight: FontWeight.w600, color: Colors.black),
-        ),
-        const SizedBox(height: SvSpacing.sm),
-        SvCard(
-          padding: EdgeInsets.zero,
-          child: Column(
-            children: [
-              for (var i = 0; i < detail.linkedShareholders.length; i++) ...[
-                if (i > 0)
-                  Divider(
-                    height: 1,
-                    color: SvPalette.outlineVariant,
-                    indent: SvSpacing.cardPadding,
-                    endIndent: SvSpacing.cardPadding,
-                  ),
-                _LinkedShareholderTile(
-                  shareholder: detail.linkedShareholders[i],
-                ),
-              ],
-            ],
-          ),
-        ),
+            );
+          }),
       ],
     );
   }
+}
 
-  List<Widget> _buildRecipientCards(TravelSupportInfo travelSupport) {
+class _CheckInBlock extends StatelessWidget {
+  final int checkInIndex;
+  final RecipientCheckIn checkIn;
+  final String fallbackReceiverName;
+
+  const _CheckInBlock({
+    required this.checkInIndex,
+    required this.checkIn,
+    required this.fallbackReceiverName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final travelSupport = checkIn.travelSupport;
+    final amountText =
+        '${NumberFormat('#,###').format(travelSupport.receiveAmount)} ₫';
+    final timeText = DateFormat('HH:mm dd/MM/yyyy')
+        .format(travelSupport.receiveTime.toLocal());
+
+    return SvCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Lượt check-in #$checkInIndex',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          SvResultInfoRow(
+            icon: Icons.badge_outlined,
+            label: 'Mã cổ đông',
+            value: checkIn.mcd,
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          SvResultInfoRow(
+            icon: Icons.person_outline,
+            label: 'Tên cổ đông',
+            value: checkIn.shareholderFullName,
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          SvResultInfoRow(
+            icon: Icons.pie_chart_outline,
+            label: 'Số cổ phần',
+            value: '${NumberFormat('#,###').format(checkIn.totalShares)} CP',
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          SvResultInfoRow(
+            icon: Icons.payments_outlined,
+            label: 'Số tiền đã phát',
+            value: amountText,
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          SvResultInfoRow(
+            icon: Icons.schedule,
+            label: 'Thời gian nhận',
+            value: timeText,
+          ),
+          if (travelSupport.operatorName != null &&
+              travelSupport.operatorName!.isNotEmpty) ...[
+            const SizedBox(height: SvSpacing.sm),
+            SvResultInfoRow(
+              icon: Icons.badge,
+              label: 'Nhân viên xác nhận',
+              value: travelSupport.operatorName!,
+            ),
+          ],
+          const SizedBox(height: SvSpacing.md),
+          Text(
+            'Thông tin người nhận',
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: Colors.black,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          ..._buildRecipientCards(
+            travelSupport: travelSupport,
+            fallbackReceiverName: fallbackReceiverName,
+          ).map(
+            (card) => Padding(
+              padding: const EdgeInsets.only(bottom: SvSpacing.sm),
+              child: card,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildRecipientCards({
+    required TravelSupportInfo travelSupport,
+    required String fallbackReceiverName,
+  }) {
     final cards = <Widget>[];
 
     if (travelSupport.isProxy) {
@@ -153,7 +206,7 @@ class RecipientDetailBody extends StatelessWidget {
       cards.add(
         _PersonEvidenceCard(
           role: 'Người nhận',
-          name: detail.personFullName,
+          name: fallbackReceiverName,
           photoPath: travelSupport.photoPath,
         ),
       );
@@ -220,55 +273,6 @@ class _PersonEvidenceCard extends StatelessWidget {
             photoPath: photoPath,
             label: 'Ảnh chứng cứ',
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LinkedShareholderTile extends StatelessWidget {
-  final LinkedShareholder shareholder;
-
-  const _LinkedShareholderTile({required this.shareholder});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: SvSpacing.cardPadding,
-        vertical: SvSpacing.xs,
-      ),
-      title: Text(
-        shareholder.mcd,
-        style: theme.textTheme.titleSmall?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: shareholder.isReceiveMcd ? SvPalette.primary : null,
-        ),
-      ),
-      subtitle: Text(
-        shareholder.fullName,
-        style: theme.textTheme.bodySmall,
-      ),
-      trailing: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            '${NumberFormat('#,###').format(shareholder.totalShares)} CP',
-            style: theme.textTheme.labelMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (shareholder.isReceiveMcd)
-            Text(
-              'MCD nhận',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: SvPalette.tertiary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
         ],
       ),
     );
