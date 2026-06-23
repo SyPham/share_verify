@@ -23,6 +23,24 @@ class ShareholderRemoteSource {
     return ShareholderSearchPageDto.fromJson(response.data ?? {});
   }
 
+  Future<ShareholderSearchPageDto> list({
+    required bool received,
+    String keyword = '',
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      '/api/shareholders/list',
+      queryParameters: {
+        'received': received,
+        'keyword': keyword,
+        'page': page,
+        'pageSize': pageSize,
+      },
+    );
+    return ShareholderSearchPageDto.fromJson(response.data ?? {});
+  }
+
   Future<RegistrationNoAutocompletePageDto> searchRegistrationNumbers(
     String keyword, {
     int page = 1,

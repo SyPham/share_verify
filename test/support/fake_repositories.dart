@@ -83,6 +83,16 @@ class FakeShareholderRepository implements ShareholderRepository {
     );
   }
 
+  bool _matchesReceived(Shareholder sh, bool received) {
+    final isReceived = sh.status == PaymentStatus.received;
+    return isReceived == received;
+  }
+
+  bool _matchesKeywordOptional(Shareholder sh, String keyword) {
+    if (keyword.isEmpty) return true;
+    return _matchesKeyword(sh, keyword);
+  }
+
   bool _matchesKeyword(Shareholder sh, String keyword) {
     final lower = keyword.toLowerCase();
     return sh.code.toLowerCase().contains(lower) ||
@@ -97,6 +107,47 @@ class FakeShareholderRepository implements ShareholderRepository {
       registrationNo: sh.idNumber.isNotEmpty ? sh.idNumber : null,
       totalShares: sh.shares,
       travelSupportReceived: sh.status == PaymentStatus.received,
+    );
+  }
+
+  @override
+  Future<ShareholderSearchPageDto> listShareholders({
+    required bool received,
+    String keyword = '',
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final normalized = keyword.trim().toLowerCase();
+
+    final all = <ShareholderSearchDto>[];
+    for (final entry in results.entries) {
+      final sh = entry.value;
+      if (sh == null) continue;
+      if (_matchesReceived(sh, received) &&
+          _matchesKeywordOptional(sh, normalized)) {
+        all.add(_toSearchDto(sh));
+      }
+    }
+
+    for (final sh in TestData.shareholders) {
+      if (_matchesReceived(sh, received) &&
+          _matchesKeywordOptional(sh, normalized) &&
+          !all.any((item) => item.mcd == sh.code)) {
+        all.add(_toSearchDto(sh));
+      }
+    }
+
+    all.sort((a, b) => a.fullName.compareTo(b.fullName));
+    final start = (page - 1) * pageSize;
+    final end = (start + pageSize).clamp(0, all.length);
+    final items =
+        start < all.length ? all.sublist(start, end) : <ShareholderSearchDto>[];
+
+    return ShareholderSearchPageDto(
+      items: items,
+      totalCount: all.length,
+      page: page,
+      pageSize: pageSize,
     );
   }
 
@@ -116,8 +167,7 @@ class FakeShareholderRepository implements ShareholderRepository {
       items: pageResult.items
           .where(
             (item) =>
-                item.registrationNo != null &&
-                item.registrationNo!.isNotEmpty,
+                item.registrationNo != null && item.registrationNo!.isNotEmpty,
           )
           .map(
             (item) => RegistrationNoAutocompleteItemDto(
@@ -159,7 +209,6 @@ class FakeShareholderRepository implements ShareholderRepository {
 class FakeDashboardRepository implements DashboardRepository {
   @override
   Future<DashboardStats> getSummary() async => TestData.dashboardStats;
-
 }
 
 class FakeTravelSupportRepository implements TravelSupportRepository {

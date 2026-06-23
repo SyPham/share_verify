@@ -11,6 +11,12 @@ abstract class ShareholderRepository {
     int page = 1,
     int pageSize = 20,
   });
+  Future<ShareholderSearchPageDto> listShareholders({
+    required bool received,
+    String keyword = '',
+    int page = 1,
+    int pageSize = 20,
+  });
   Future<Shareholder?> findByMcd(String mcd);
   Future<RegistrationNoAutocompletePageDto> searchRegistrationNumbers(
     String keyword, {
@@ -48,6 +54,21 @@ class ShareholderRepositoryImpl implements ShareholderRepository {
 
     return _remoteSource.search(
       normalized,
+      page: page,
+      pageSize: pageSize,
+    );
+  }
+
+  @override
+  Future<ShareholderSearchPageDto> listShareholders({
+    required bool received,
+    String keyword = '',
+    int page = 1,
+    int pageSize = 20,
+  }) {
+    return _remoteSource.list(
+      received: received,
+      keyword: keyword.trim(),
       page: page,
       pageSize: pageSize,
     );
