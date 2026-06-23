@@ -1,4 +1,3 @@
-import 'package:share_verify/core/models/activity_item.dart';
 import 'package:share_verify/core/models/dashboard_stats.dart';
 import 'package:share_verify/core/models/payment_status.dart';
 import 'package:share_verify/core/models/shareholder.dart';
@@ -48,22 +47,8 @@ class TestData {
     totalShareholders: 1200,
     receivedCount: 450,
     notReceivedCount: 750,
+    warningCount: 27,
   );
-
-  static const recentActivities = [
-    ActivityItem(
-      shareholderCode: 'SH0002',
-      fullName: 'Nguyễn Văn B',
-      timeLabel: '08:40',
-      statusLabel: 'Thành công',
-    ),
-    ActivityItem(
-      shareholderCode: 'SH0003',
-      fullName: 'Trần Thị C',
-      timeLabel: '08:35',
-      statusLabel: 'Thành công',
-    ),
-  ];
 
   static Shareholder? findByIdNumber(String idNumber) {
     final normalized = idNumber.trim();

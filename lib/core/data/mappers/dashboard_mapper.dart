@@ -13,6 +13,7 @@ class DashboardMapper {
       totalShareholders: dto.totalShareholders,
       receivedCount: dto.receivedCount,
       notReceivedCount: dto.notReceivedCount,
+      warningCount: dto.warningCount,
       completionRatePercent: completionRatePercent,
     );
   }

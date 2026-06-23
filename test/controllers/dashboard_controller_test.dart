@@ -8,7 +8,7 @@ void main() {
   setUp(() => Get.testMode = true);
   tearDown(Get.reset);
 
-  test('refresh loads dashboard stats and activities', () async {
+  test('refresh loads dashboard stats with warning count', () async {
     final controller = DashboardController(
       dashboardRepository: FakeDashboardRepository(),
     );
@@ -17,8 +17,7 @@ void main() {
 
     expect(controller.stats.value.totalShareholders,
         TestData.dashboardStats.totalShareholders);
-    expect(controller.recentActivities.length,
-        TestData.recentActivities.length);
+    expect(controller.warningCount, TestData.dashboardStats.warningCount);
     expect(controller.isLoading.value, isFalse);
     expect(controller.errorMessage.value, isNull);
   });

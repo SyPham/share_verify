@@ -2,14 +2,16 @@ class DashboardStats {
   final int totalShareholders;
   final int receivedCount;
   final int notReceivedCount;
+  final int warningCount;
 
   /// Phần trăm hoàn thành 0–100 từ API (`completionRate`).
   final double completionRatePercent;
 
   const DashboardStats({
-    required this.totalShareholders,
     required this.receivedCount,
     required this.notReceivedCount,
+    required this.warningCount,
+    this.totalShareholders = 0,
     this.completionRatePercent = 0,
   });
 

@@ -4,7 +4,6 @@ import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/controllers/dashboard_controller.dart';
 import 'package:share_verify/core/screens/dashboard/components/progress_ring_section.dart';
 import 'package:share_verify/core/screens/settings/settings_screen.dart';
-import 'package:share_verify/core/screens/dashboard/components/recent_activity_list.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
 import 'package:share_verify/core/screens/recipients/recipients_list_screen.dart';
@@ -22,7 +21,7 @@ class DashboardScreen extends GetView<DashboardController> {
         onOpenSettings: () => Get.toNamed(SettingsScreen.routeName),
       ),
       body: Obx(() {
-        if (controller.isLoading.value && controller.recentActivities.isEmpty) {
+        if (controller.isLoading.value) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -105,18 +104,13 @@ class DashboardScreen extends GetView<DashboardController> {
                 ],
               ),
               const SizedBox(height: SvSpacing.md),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Hoạt động gần đây', style: Theme.of(context).textTheme.titleLarge),
-                  TextButton(
-                    onPressed: () => Get.toNamed(RecipientsListScreen.routeName),
-                    child: const Text('Xem tất cả'),
-                  ),
-                ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Get.toNamed(RecipientsListScreen.routeName),
+                  child: const Text('Xem danh sách người nhận'),
+                ),
               ),
-              const SizedBox(height: SvSpacing.sm),
-              RecentActivityList(activities: controller.recentActivities),
               ],
             ),
           ),

@@ -42,7 +42,6 @@ class InitApplication {
     Get.put<DashboardRepository>(
       DashboardRepositoryImpl(
         dashboardSource: dashboardRemote,
-        travelSupportSource: travelSupportRemote,
       ),
       permanent: true,
     );

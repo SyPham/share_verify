@@ -2,12 +2,14 @@ class DashboardSummaryDto {
   final int totalShareholders;
   final int receivedCount;
   final int notReceivedCount;
+  final int warningCount;
   final double completionRate;
 
   const DashboardSummaryDto({
     required this.totalShareholders,
     required this.receivedCount,
     required this.notReceivedCount,
+    required this.warningCount,
     required this.completionRate,
   });
 
@@ -16,6 +18,7 @@ class DashboardSummaryDto {
       totalShareholders: _readInt(json['totalShareholders']),
       receivedCount: _readInt(json['receivedCount']),
       notReceivedCount: _readInt(json['notReceivedCount']),
+      warningCount: _readInt(json['warningCount']),
       completionRate: _readDouble(json['completionRate']),
     );
   }

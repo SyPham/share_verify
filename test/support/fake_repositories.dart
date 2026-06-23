@@ -3,7 +3,6 @@ import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dar
 import 'package:share_verify/core/data/dto/photo_dtos.dart';
 import 'package:share_verify/core/data/dto/travel_support_dtos.dart';
 import 'package:share_verify/core/network/api_exception.dart';
-import 'package:share_verify/core/models/activity_item.dart';
 import 'package:share_verify/core/models/attendance_type.dart';
 import 'package:share_verify/core/models/dashboard_stats.dart';
 import 'package:share_verify/core/models/identity_verification.dart';
@@ -161,9 +160,6 @@ class FakeDashboardRepository implements DashboardRepository {
   @override
   Future<DashboardStats> getSummary() async => TestData.dashboardStats;
 
-  @override
-  Future<List<ActivityItem>> getRecentActivity() async =>
-      TestData.recentActivities;
 }
 
 class FakeTravelSupportRepository implements TravelSupportRepository {
