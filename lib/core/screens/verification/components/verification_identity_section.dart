@@ -26,8 +26,8 @@ class VerificationIdentitySection extends GetView<VerificationController> {
                 final isProxy =
                     controller.attendanceType.value == AttendanceType.proxy;
                 final title = isProxy
-                    ? 'Bước 1: Xác minh giấy tờ người ủy quyền'
-                    : 'Bước 1: Xác minh giấy tờ người nhận';
+                    ? 'Xác minh giấy tờ người ủy quyền'
+                    : 'Xác minh giấy tờ người nhận';
                 return Text(
                   title,
                   style: theme.textTheme.labelLarge?.copyWith(

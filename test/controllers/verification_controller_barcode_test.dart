@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
 import 'package:share_verify/core/models/attendance_type.dart';
+import 'package:share_verify/core/data/dto/shareholder_dtos.dart';
 import 'package:share_verify/core/models/identity_verification.dart';
 import 'package:share_verify/core/models/payment_status.dart';
+import 'package:share_verify/core/models/verification_step.dart';
 import 'package:share_verify/core/services/barcode_scanner_service.dart';
 import '../support/fake_repositories.dart';
 
@@ -55,7 +57,8 @@ void main() {
 
     expect(c.scannedBarcode.value?.mcd, 'SH0001');
     expect(c.selectedShareholder.value?.code, 'SH0001');
-    expect(c.selectedShareholder.value?.status, PaymentStatus.notReceived);
+    expect(c.selectedShareholder.value?.status, PaymentStatus.received);
+    expect(c.receiveJustCompleted.value, isTrue);
     expect(travelSupportRepository.receiveCallCount, 1);
   });
 
@@ -118,4 +121,39 @@ void main() {
     expect(travelSupportRepository.lastPhotoPath, 'uploads/proxy.jpg');
     expect(travelSupportRepository.lastIdentity?.receiverName, 'Nguyễn Văn A');
   });
+
+  test('hasShareholderSelected enables process next after picker selection', () async {
+    final c = createController();
+    await c.setIdentityVerification(completeIdentity);
+    c.verificationStep.value = VerificationStep.barcode;
+    c.selectedPickerShareholder.value = const ShareholderSearchDto(
+      mcd: 'SH0001',
+      fullName: 'Nguyễn Văn A',
+      totalShares: 1000,
+      travelSupportReceived: false,
+    );
+
+    expect(c.hasShareholderSelected, isTrue);
+    expect(c.canSwipeToNextStep, isTrue);
+  });
+
+  test('onShareholderPicked auto-receives and marks receiveJustCompleted', () async {
+    final c = createController();
+    await c.setIdentityVerification(completeIdentity);
+    c.verificationStep.value = VerificationStep.barcode;
+
+    await c.onShareholderPicked(
+      const ShareholderSearchDto(
+        mcd: 'SH0001',
+        fullName: 'Nguyễn Văn A',
+        totalShares: 1000,
+        travelSupportReceived: false,
+      ),
+    );
+
+    expect(c.selectedShareholder.value?.code, 'SH0001');
+    expect(c.receiveJustCompleted.value, isTrue);
+    expect(c.hasShareholderSelected, isTrue);
+  });
+
 }

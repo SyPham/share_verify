@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/controllers/capture_controller.dart';
+import 'package:share_verify/core/widgets/identity_usage_shareholder_section.dart';
 
 class CaptureIdentityUsageWarning extends GetView<CaptureController> {
   const CaptureIdentityUsageWarning({super.key});
@@ -16,8 +17,6 @@ class CaptureIdentityUsageWarning extends GetView<CaptureController> {
 
       final check = controller.identityCheckResult.value!;
       final theme = Theme.of(context);
-      final mcds = controller.usedShareholderCodes;
-
       return Container(
         width: double.infinity,
         margin: const EdgeInsets.only(bottom: SvSpacing.sm),
@@ -59,36 +58,14 @@ class CaptureIdentityUsageWarning extends GetView<CaptureController> {
                 height: 1.35,
               ),
             ),
-            if (mcds.isNotEmpty) ...[
-              const SizedBox(height: SvSpacing.sm),
-              Text(
-                'Mã cổ đông đã nhận:',
-                style: theme.textTheme.labelMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: SvPalette.onWarningContainer,
-                ),
+            const SizedBox(height: SvSpacing.sm),
+            IdentityUsageShareholderSection(
+              check: check,
+              titleStyle: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: SvPalette.onWarningContainer,
               ),
-              const SizedBox(height: SvSpacing.xs),
-              Wrap(
-                spacing: SvSpacing.xs,
-                runSpacing: SvSpacing.xs,
-                children: [
-                  for (final mcd in mcds)
-                    Chip(
-                      label: Text(
-                        mcd,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: SvPalette.onWarningContainer,
-                        ),
-                      ),
-                      backgroundColor: SvPalette.warningChipBackground,
-                      side: BorderSide.none,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                ],
-              ),
-            ],
+            ),
             const SizedBox(height: SvSpacing.xs),
             Text(
               'Kiểm tra lại thông tin hoặc bấm Xác nhận lần nữa để tiếp tục.',

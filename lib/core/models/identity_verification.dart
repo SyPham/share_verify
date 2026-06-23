@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:share_verify/core/data/dto/travel_support_dtos.dart';
 import 'package:share_verify/core/models/open_ai_usage_info.dart';
 
 class IdentityVerification {
@@ -11,6 +12,8 @@ class IdentityVerification {
   final String? photoPath;
   final Uint8List? photoBytes;
   final OpenAiUsageInfo? openAiUsage;
+  final IdentityCheckResultDto? identityUsageCheck;
+  final bool identityUsageAcknowledged;
 
   const IdentityVerification({
     required this.identityNo,
@@ -21,6 +24,8 @@ class IdentityVerification {
     this.photoPath,
     this.photoBytes,
     this.openAiUsage,
+    this.identityUsageCheck,
+    this.identityUsageAcknowledged = false,
   });
 
   bool get isComplete =>

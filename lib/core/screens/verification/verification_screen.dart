@@ -2,17 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
+import 'package:share_verify/core/models/verification_step.dart';
 import 'package:share_verify/core/screens/settings/settings_screen.dart';
-import 'package:share_verify/core/screens/verification/components/verification_attendance_section.dart';
+import 'package:share_verify/core/screens/verification/components/verification_attendance_step.dart';
+import 'package:share_verify/core/screens/verification/components/verification_barcode_step.dart';
+import 'package:share_verify/core/screens/verification/components/verification_barcode_step_footer.dart';
 import 'package:share_verify/core/screens/verification/components/verification_error_banner.dart';
-import 'package:share_verify/core/screens/verification/components/verification_identity_section.dart';
-import 'package:share_verify/core/screens/verification/components/verification_identity_usage_warning.dart';
+import 'package:share_verify/core/screens/verification/components/verification_evidence_step.dart';
+import 'package:share_verify/core/screens/verification/components/verification_identity_step.dart';
+import 'package:share_verify/core/screens/verification/components/verification_step_indicator.dart';
+import 'package:share_verify/core/screens/verification/components/verification_step_swipe_navigator.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
-import 'package:share_verify/core/widgets/sv_primary_button.dart';
 import 'package:share_verify/core/widgets/sv_server_config_banner.dart';
 
 class VerificationScreen extends GetView<VerificationController> {
   const VerificationScreen({super.key});
+
+  static const _bodyPadding = EdgeInsets.fromLTRB(
+    SvSpacing.containerMargin,
+    SvSpacing.lg,
+    SvSpacing.containerMargin,
+    SvSpacing.lg,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -34,56 +45,82 @@ class VerificationScreen extends GetView<VerificationController> {
           },
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          SvSpacing.containerMargin,
-          SvSpacing.lg,
-          SvSpacing.containerMargin,
-          SvSpacing.lg,
-        ),
-        child: Column(
-          children: [
-            const SvServerConfigBanner(),
-            const SizedBox(height: SvSpacing.md),
-            Obx(
-              () => VerificationAttendanceSection(
-                attendanceType: controller.attendanceType.value,
-                onAttendanceTypeChanged: controller.onAttendanceTypeChanged,
+      body: Obx(() {
+        final step = controller.verificationStep.value;
+        final canSwipeLeft = controller.canSwipeToNextStep;
+        final canSwipeRight = controller.canSwipeToPreviousStep;
+        final leftHint =
+            canSwipeLeft ? controller.swipeLeftHint : null;
+        final rightHint =
+            canSwipeRight ? controller.swipeRightHint : null;
+
+        return Padding(
+          padding: _bodyPadding,
+          child: VerificationStepSwipeNavigator(
+            canSwipeLeft: canSwipeLeft,
+            canSwipeRight: canSwipeRight,
+            onSwipeLeft: controller.swipeToNextStep,
+            onSwipeRight: controller.swipeToPreviousStep,
+            swipeLeftHint: leftHint,
+            swipeRightHint: rightHint,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SvServerConfigBanner(),
+                  const SizedBox(height: SvSpacing.md),
+                  VerificationStepIndicator(current: step),
+                  const SizedBox(height: SvSpacing.lg),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      final slide = Tween<Offset>(
+                        begin: const Offset(0.04, 0),
+                        end: Offset.zero,
+                      ).animate(animation);
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(position: slide, child: child),
+                      );
+                    },
+                    child: KeyedSubtree(
+                      key: ValueKey(step),
+                      child: switch (step) {
+                        VerificationStep.attendance =>
+                          const VerificationAttendanceStep(),
+                        VerificationStep.identity =>
+                          const VerificationIdentityStepBody(),
+                        VerificationStep.evidence =>
+                          const VerificationEvidenceStep(),
+                        VerificationStep.barcode =>
+                          const VerificationBarcodeStep(),
+                      },
+                    ),
+                  ),
+                  _buildErrorBanner(),
+                  if (step == VerificationStep.identity)
+                    const VerificationIdentityStepFooter(),
+                  if (step == VerificationStep.barcode)
+                    const VerificationBarcodeStepFooter(),
+                ],
               ),
             ),
-            const SizedBox(height: SvSpacing.md),
-            const VerificationIdentitySection(),
-            const VerificationIdentityUsageWarning(),
-            Obx(() {
-              if (!controller.canProceedToBarcodeScreen ||
-                  controller.isCheckingIdentity.value) {
-                return const SizedBox.shrink();
-              }
-              return Column(
-                children: [
-                  const SizedBox(height: SvSpacing.md),
-                  SvPrimaryButton(
-                    label: 'Quét mã thiệp mời',
-                    icon: Icons.qr_code_2,
-                    onPressed: controller.goToBarcodeScreen,
-                    height: 56,
-                  ),
-                ],
-              );
-            }),
-            Obx(() {
-              final message = controller.errorMessage.value;
-              if (message == null) return const SizedBox.shrink();
-              return Column(
-                children: [
-                  const SizedBox(height: SvSpacing.sm),
-                  VerificationErrorBanner(message: message),
-                ],
-              );
-            }),
-          ],
-        ),
-      ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildErrorBanner() {
+    final message = controller.errorMessage.value;
+    if (message == null) return const SizedBox.shrink();
+    return Column(
+      children: [
+        const SizedBox(height: SvSpacing.sm),
+        VerificationErrorBanner(message: message),
+      ],
     );
   }
 

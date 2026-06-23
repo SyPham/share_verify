@@ -17,7 +17,7 @@ void main() {
     await tester.pumpWidget(const ShareVerifyApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Quét Mã Thiệp Mời'), findsOneWidget);
+    expect(find.text('Bước 1/4'), findsOneWidget);
     expect(find.text('Kiểm Tra'), findsOneWidget);
     expect(find.text('Dashboard'), findsOneWidget);
   });

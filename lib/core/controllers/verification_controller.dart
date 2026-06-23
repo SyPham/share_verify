@@ -9,6 +9,7 @@ import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dar
 import 'package:share_verify/core/data/dto/shareholder_dtos.dart';
 import 'package:share_verify/core/data/dto/travel_support_dtos.dart';
 import 'package:share_verify/core/models/attendance_type.dart';
+import 'package:share_verify/core/models/verification_step.dart';
 import 'package:share_verify/core/models/capture_route_args.dart';
 import 'package:share_verify/core/models/identity_verification.dart';
 import 'package:share_verify/core/models/invitation_barcode.dart';
@@ -22,6 +23,7 @@ import 'package:share_verify/core/repositories/travel_support_repository.dart';
 import 'package:share_verify/core/models/travel_support_info.dart';
 import 'package:share_verify/core/utils/allowance_amount.dart';
 import 'package:share_verify/core/screens/verification/components/recipient_info_sheet.dart';
+import 'package:share_verify/core/screens/verification/components/verification_identity_usage_dialog.dart';
 import 'package:share_verify/core/services/barcode_scanner_service.dart';
 import 'package:share_verify/core/utils/barcode_parser.dart';
 import 'package:share_verify/core/utils/cccd_qr_parser.dart';
@@ -54,10 +56,12 @@ class VerificationController extends GetxController {
   final selectedPickerShareholder = Rxn<ShareholderSearchDto>();
   final identityCheckResult = Rxn<IdentityCheckResultDto>();
   final attendanceType = AttendanceType.direct.obs;
+  final verificationStep = VerificationStep.attendance.obs;
   final isSearching = false.obs;
   final isSubmitting = false.obs;
   final isCheckingIdentity = false.obs;
   final isLoadingRecipients = false.obs;
+  final receiveJustCompleted = false.obs;
   final errorMessage = RxnString();
 
   final barcodeInputFocus = FocusNode();
@@ -70,11 +74,25 @@ class VerificationController extends GetxController {
   final manualPhotoPath = RxnString();
   final manualPhotoBytes = Rxn<Uint8List>();
   final manualOpenAiUsage = Rxn<OpenAiUsageInfo>();
+  final _identityUsageDialogShown = false.obs;
+  final manualIdentityFormRevision = 0.obs;
 
   Timer? _manualIdentityLookupDebounce;
   String? _lastManualIdentityLookupKey;
 
   bool get isProxy => attendanceType.value == AttendanceType.proxy;
+
+  bool get isOnAttendanceStep =>
+      verificationStep.value == VerificationStep.attendance;
+
+  bool get isOnIdentityStep =>
+      verificationStep.value == VerificationStep.identity;
+
+  bool get isOnEvidenceStep =>
+      verificationStep.value == VerificationStep.evidence;
+
+  bool get isOnBarcodeStep =>
+      verificationStep.value == VerificationStep.barcode;
 
   IdentityVerification? get effectivePendingIdentity =>
       _buildPendingFromManualForm();
@@ -82,9 +100,44 @@ class VerificationController extends GetxController {
   /// Giấy tờ đã đủ thông tin để quét mã cổ đông (chưa lưu backend).
   IdentityVerification? get activeIdentity => effectivePendingIdentity;
 
+  bool get isIdentityInfoReady {
+    if (!_canUseTextControllers) return false;
+    final name = manualNameController.text.trim();
+    final id = manualIdController.text.trim();
+    final type = manualIdentityType.value;
+    return name.isNotEmpty && id.isNotEmpty && type.isNotEmpty;
+  }
+
   bool get isIdentityReady => effectivePendingIdentity?.isComplete == true;
 
   bool get canProceedToBarcodeScreen => isIdentityReady;
+
+  bool get hasShareholderSelected =>
+      selectedShareholder.value != null ||
+      scannedBarcode.value != null ||
+      selectedPickerShareholder.value != null;
+
+  bool get canSwipeToNextStep {
+    if (isCheckingIdentity.value) return false;
+    return switch (verificationStep.value) {
+      VerificationStep.attendance => true,
+      VerificationStep.identity => isIdentityInfoReady,
+      VerificationStep.evidence => isIdentityReady,
+      VerificationStep.barcode => hasShareholderSelected,
+    };
+  }
+
+  bool get canSwipeToPreviousStep => !isOnAttendanceStep;
+
+  String get swipeLeftHint => switch (verificationStep.value) {
+        VerificationStep.barcode when hasShareholderSelected =>
+          'Vuốt sang trái để xử lý người tiếp theo',
+        VerificationStep.barcode => '',
+        _ => 'Vuốt sang trái để tiếp tục',
+      };
+
+  String get swipeRightHint =>
+      canSwipeToPreviousStep ? 'Vuốt sang phải để quay lại' : '';
 
   bool get hasIdentityUsageWarning =>
       identityCheckResult.value?.alreadyUsed == true;
@@ -95,20 +148,37 @@ class VerificationController extends GetxController {
           ? [identityCheckResult.value!.usedForMcd!]
           : const []);
 
+  bool get shouldPromptIdentityUsageDialog =>
+      isOnIdentityStep &&
+      hasIdentityUsageWarning &&
+      isIdentityInfoReady &&
+      !_identityUsageDialogShown.value;
+
   bool get _canUseTextControllers => !isClosed;
+
+  void _bumpManualIdentityFormRevision() {
+    manualIdentityFormRevision.value++;
+  }
 
   @override
   void onInit() {
     super.onInit();
+    manualNameController.addListener(_onManualNameChanged);
     manualIdController.addListener(_onManualPrimaryIdChanged);
     manualCmndController.addListener(_onManualLegacyIdChanged);
-    ever(manualIdentityType, (_) => _scheduleManualIdentityLookup());
+    ever(manualIdentityType, (_) {
+      _identityUsageDialogShown.value = false;
+      _bumpManualIdentityFormRevision();
+      _scheduleManualIdentityLookup();
+      _scheduleManualIdentityUsageRecheck();
+    });
   }
 
   @override
   void onClose() {
     _manualIdentityLookupDebounce?.cancel();
     _manualIdentityUsageRecheckDebounce?.cancel();
+    manualNameController.removeListener(_onManualNameChanged);
     manualIdController.removeListener(_onManualPrimaryIdChanged);
     manualCmndController.removeListener(_onManualLegacyIdChanged);
     barcodeInputController.dispose();
@@ -119,7 +189,57 @@ class VerificationController extends GetxController {
     super.onClose();
   }
 
-  Future<void> goToBarcodeScreen() async {
+  Future<void> _maybeShowIdentityUsageDialog() async {
+    if (!shouldPromptIdentityUsageDialog) return;
+
+    BuildContext? context;
+    try {
+      context = Get.context;
+    } catch (_) {
+      return;
+    }
+    if (context == null || !context.mounted) return;
+
+    _identityUsageDialogShown.value = true;
+    final accepted = await VerificationIdentityUsageDialog.show(
+      context,
+      check: identityCheckResult.value!,
+    );
+    if (accepted) {
+      advanceToEvidenceStep(force: true);
+    } else {
+      _identityUsageDialogShown.value = false;
+    }
+  }
+
+  Future<void> goToBarcodeScreen() => advanceToBarcodeStep();
+
+  void advanceToIdentityStep() {
+    errorMessage.value = null;
+    verificationStep.value = VerificationStep.identity;
+  }
+
+  Future<void> advanceToEvidenceStep({bool force = false}) async {
+    errorMessage.value = null;
+
+    if (!isIdentityInfoReady) {
+      errorMessage.value =
+          'Vui lòng nhập đủ thông tin giấy tờ trước khi chụp ảnh chứng cứ';
+      return;
+    }
+
+    if (!force) {
+      await _flushManualIdentityUsageCheck();
+      if (shouldPromptIdentityUsageDialog) {
+        await _maybeShowIdentityUsageDialog();
+        return;
+      }
+    }
+
+    verificationStep.value = VerificationStep.evidence;
+  }
+
+  Future<void> advanceToBarcodeStep() async {
     errorMessage.value = null;
 
     if (!isIdentityReady) {
@@ -128,8 +248,43 @@ class VerificationController extends GetxController {
       return;
     }
 
+    verificationStep.value = VerificationStep.barcode;
     _resetBarcodeFlow();
-    await Get.toNamed(barcodeRouteName);
+  }
+
+  void goBackStep() {
+    errorMessage.value = null;
+    verificationStep.value = switch (verificationStep.value) {
+      VerificationStep.barcode => VerificationStep.evidence,
+      VerificationStep.evidence => VerificationStep.identity,
+      VerificationStep.identity => VerificationStep.attendance,
+      VerificationStep.attendance => VerificationStep.attendance,
+    };
+    if (isOnIdentityStep && isIdentityInfoReady) {
+      _identityUsageDialogShown.value = false;
+      _scheduleManualIdentityUsageRecheck();
+    }
+  }
+
+  void swipeToNextStep() {
+    switch (verificationStep.value) {
+      case VerificationStep.attendance:
+        advanceToIdentityStep();
+      case VerificationStep.identity:
+        unawaited(advanceToEvidenceStep());
+      case VerificationStep.evidence:
+        unawaited(advanceToBarcodeStep());
+      case VerificationStep.barcode:
+        if (hasShareholderSelected) {
+          unawaited(processNextPerson());
+        }
+    }
+  }
+
+  void swipeToPreviousStep() {
+    if (canSwipeToPreviousStep) {
+      goBackStep();
+    }
   }
 
   Future<void> onScanInvitationBarcode() async {
@@ -325,8 +480,10 @@ class VerificationController extends GetxController {
   }
 
   void _resetIdentityFlow() {
+    verificationStep.value = VerificationStep.attendance;
     identityCheckResult.value = null;
-    attendanceType.value = AttendanceType.direct;
+    _identityUsageDialogShown.value = false;
+    receiveJustCompleted.value = false;
     _clearManualForm(resetIdentityType: true);
     isSubmitting.value = false;
     isCheckingIdentity.value = false;
@@ -344,10 +501,20 @@ class VerificationController extends GetxController {
       applyCaptureResult(verification);
 
   void onAttendanceTypeChanged(AttendanceType type) {
+    if (attendanceType.value == type) return;
+
     attendanceType.value = type;
+    _identityUsageDialogShown.value = false;
     _clearManualForm(resetIdentityType: true);
     identityCheckResult.value = null;
     _resetBarcodeFlow();
+  }
+
+  bool _shouldAdvanceToEvidenceAfterCapture(IdentityVerification verification) {
+    return switch (verification.identityType.toUpperCase()) {
+      'CMND' || 'PASSPORT' => true,
+      _ => false,
+    };
   }
 
   Future<void> applyCaptureResult(IdentityVerification verification) async {
@@ -355,11 +522,26 @@ class VerificationController extends GetxController {
     _fillManualFormFromCapture(verification);
     _resetBarcodeFlow();
     errorMessage.value = null;
-    await _checkIdentityUsage(verification);
+    verificationStep.value = VerificationStep.identity;
+
+    if (verification.identityUsageAcknowledged &&
+        verification.identityUsageCheck != null) {
+      identityCheckResult.value = verification.identityUsageCheck;
+      if (verification.identityUsageCheck!.alreadyUsed) {
+        _identityUsageDialogShown.value = true;
+      }
+    } else {
+      await _checkIdentityUsage(verification);
+    }
+
+    if (_shouldAdvanceToEvidenceAfterCapture(verification)) {
+      verificationStep.value = VerificationStep.evidence;
+    }
   }
 
   void _clearManualForm({bool resetIdentityType = false}) {
     if (!_canUseTextControllers) return;
+    _identityUsageDialogShown.value = false;
     _lastManualIdentityLookupKey = null;
     manualNameController.clear();
     manualIdController.clear();
@@ -371,17 +553,20 @@ class VerificationController extends GetxController {
     manualPhotoPath.value = null;
     manualPhotoBytes.value = null;
     manualOpenAiUsage.value = null;
+    _bumpManualIdentityFormRevision();
   }
 
   void resetManualIdentityForm() {
     if (!_canUseTextControllers) return;
     _manualIdentityLookupDebounce?.cancel();
     _manualIdentityUsageRecheckDebounce?.cancel();
+    _identityUsageDialogShown.value = false;
     _clearManualForm(resetIdentityType: true);
     identityCheckResult.value = null;
     isCheckingIdentity.value = false;
     errorMessage.value = null;
     _resetBarcodeFlow();
+    verificationStep.value = VerificationStep.identity;
   }
 
   IdentityVerification? _buildPendingFromManualForm() {
@@ -439,6 +624,7 @@ class VerificationController extends GetxController {
     } finally {
       if (!isClosed) {
         isCheckingIdentity.value = false;
+        await _maybeShowIdentityUsageDialog();
       }
     }
   }
@@ -453,6 +639,7 @@ class VerificationController extends GetxController {
         alreadyUsed: true,
         usedForMcd: legacy.usedForMcd,
         usedForMcds: legacy.usedForMcds,
+        usedForShareholders: legacy.usedForShareholders,
         receiverName: legacy.receiverName,
         usedIdentityType: legacy.usedIdentityType,
         usedIdentityNo: legacy.usedIdentityNo,
@@ -476,6 +663,10 @@ class VerificationController extends GetxController {
       alreadyUsed: true,
       usedForMcd: mcds.isNotEmpty ? mcds.first : primary.usedForMcd,
       usedForMcds: mcds,
+      usedForShareholders: IdentityCheckResultDto.mergeUsedShareholders(
+        primary,
+        legacy,
+      ),
       receiverName: primary.receiverName ?? legacy.receiverName,
       usedIdentityType: primary.usedIdentityType ?? legacy.usedIdentityType,
       usedIdentityNo: primary.usedIdentityNo ?? legacy.usedIdentityNo,
@@ -527,6 +718,7 @@ class VerificationController extends GetxController {
     manualNameController.text = qrData.fullName;
     manualIdController.text = qrData.identityNo;
     manualCmndController.text = qrData.cmndNo ?? '';
+    _bumpManualIdentityFormRevision();
   }
 
   void _fillManualFormFromCapture(IdentityVerification verification) {
@@ -541,6 +733,7 @@ class VerificationController extends GetxController {
     manualPhotoPath.value = verification.photoPath;
     manualPhotoBytes.value = verification.photoBytes;
     manualOpenAiUsage.value = verification.openAiUsage;
+    _bumpManualIdentityFormRevision();
   }
 
   void applyManualRegistrationLookup(RegistrationNoAutocompleteItemDto item) {
@@ -558,12 +751,22 @@ class VerificationController extends GetxController {
     }
   }
 
+  void _onManualNameChanged() {
+    _identityUsageDialogShown.value = false;
+    _bumpManualIdentityFormRevision();
+    _scheduleManualIdentityUsageRecheck();
+  }
+
   void _onManualPrimaryIdChanged() {
+    _identityUsageDialogShown.value = false;
+    _bumpManualIdentityFormRevision();
     _scheduleManualIdentityLookup(isLegacy: false);
     _scheduleManualIdentityUsageRecheck();
   }
 
   void _onManualLegacyIdChanged() {
+    _identityUsageDialogShown.value = false;
+    _bumpManualIdentityFormRevision();
     _scheduleManualIdentityLookup(isLegacy: true);
     _scheduleManualIdentityUsageRecheck();
   }
@@ -571,14 +774,20 @@ class VerificationController extends GetxController {
   Timer? _manualIdentityUsageRecheckDebounce;
 
   void _scheduleManualIdentityUsageRecheck() {
-    if (manualFormPrefillSource.value != null) return;
-    if (manualPhotoPath.value == null || manualPhotoPath.value!.isEmpty) return;
+    if (!isOnIdentityStep) return;
 
     _manualIdentityUsageRecheckDebounce?.cancel();
     _manualIdentityUsageRecheckDebounce = Timer(
       const Duration(milliseconds: 450),
       () => unawaited(_previewManualIdentityCheck()),
     );
+  }
+
+  Future<void> _flushManualIdentityUsageCheck() async {
+    _manualIdentityUsageRecheckDebounce?.cancel();
+    _manualIdentityUsageRecheckDebounce = null;
+    if (!isOnIdentityStep || !isIdentityInfoReady) return;
+    await _previewManualIdentityCheck();
   }
 
   void _scheduleManualIdentityLookup({bool isLegacy = false}) {
@@ -629,7 +838,7 @@ class VerificationController extends GetxController {
   }
 
   Future<void> _previewManualIdentityCheck() async {
-    if (!_canUseTextControllers) return;
+    if (!_canUseTextControllers || !isOnIdentityStep) return;
     final name = manualNameController.text.trim();
     final id = manualIdController.text.trim();
     if (name.isEmpty || id.isEmpty) return;
@@ -669,6 +878,7 @@ class VerificationController extends GetxController {
     } finally {
       if (!isClosed) {
         isCheckingIdentity.value = false;
+        await _maybeShowIdentityUsageDialog();
       }
     }
   }
@@ -733,11 +943,6 @@ class VerificationController extends GetxController {
     manualPhotoBytes.value = Uint8List.fromList(bytes);
     manualPhotoPath.value = upload?.photoPath;
 
-    final name = manualNameController.text.trim();
-    final id = manualIdController.text.trim();
-    if (name.isNotEmpty && id.isNotEmpty) {
-      await _previewManualIdentityCheck();
-    }
   }
 
   Future<String?> _resolvePhotoPathForReceive(IdentityVerification identity) async {
@@ -808,7 +1013,11 @@ class VerificationController extends GetxController {
       }
 
       await _refreshDashboard();
-      await Get.offNamed(successRouteName, arguments: sh);
+      final refreshed = await _refreshShareholderDetail(sh.code);
+      selectedShareholder.value = (refreshed ?? sh).copyWith(
+        status: PaymentStatus.received,
+      );
+      receiveJustCompleted.value = true;
     } catch (error) {
       final apiError = ApiClient.asApiException(error);
       if (apiError?.isConflict == true) {
@@ -837,7 +1046,13 @@ class VerificationController extends GetxController {
 
   Future<void> processNextPerson() async {
     resetSelection();
-    await Get.offAllNamed(shellRouteName);
+    try {
+      if (Get.currentRoute != shellRouteName) {
+        await Get.offAllNamed(shellRouteName);
+      }
+    } catch (_) {
+      // No navigation context (e.g. unit tests) — reset is enough.
+    }
   }
 
   Future<void> _refreshDashboard() async {

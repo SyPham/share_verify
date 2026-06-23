@@ -21,6 +21,7 @@ import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/services/ocr_service.dart';
 import 'package:share_verify/core/services/open_ai_usage_store.dart';
 import 'package:share_verify/core/utils/ocr_debug_log.dart';
+import 'package:share_verify/core/screens/verification/components/verification_identity_usage_dialog.dart';
 import 'package:share_verify/core/utils/camera_image_crop.dart';
 import 'package:share_verify/core/widgets/document_camera_preview.dart';
 
@@ -93,10 +94,13 @@ class CaptureController extends GetxController {
   final isOcrProcessing = false.obs;
   final errorMessage = RxnString();
   final identityCheckResult = Rxn<IdentityCheckResultDto>();
+  final isCheckingIdentity = false.obs;
   final identityUsageWarningShown = false.obs;
+  bool _identityUsageDialogAcknowledged = false;
+  String? _identityUsageAcknowledgedKey;
+  Timer? _identityUsageRecheckDebounce;
   final ocrIdConfidence = Rxn<double>();
   final ocrNameConfidence = Rxn<double>();
-  final ocrRawText = RxnString();
   final ocrOpenAiUsage = Rxn<OpenAiUsageInfo>();
   final identityNoController = TextEditingController();
   final cmndNoController = TextEditingController();
@@ -157,6 +161,7 @@ class CaptureController extends GetxController {
 
   @override
   void onClose() {
+    _identityUsageRecheckDebounce?.cancel();
     identityNoController.dispose();
     cmndNoController.dispose();
     receiverNameController.dispose();
@@ -364,7 +369,6 @@ class CaptureController extends GetxController {
       }
       ocrIdConfidence.value = ocr.idConfidence;
       ocrNameConfidence.value = ocr.nameConfidence;
-      ocrRawText.value = ocr.rawText;
       ocrOpenAiUsage.value = ocr.openAiUsage;
       final usage = ocr.openAiUsage;
       if (usage != null) {
@@ -384,12 +388,13 @@ class CaptureController extends GetxController {
       } else if (!ocr.hasFullName) {
         errorMessage.value =
             'Không đọc được họ tên — vui lòng nhập tay bên dưới.';
+      } else {
+        await _previewIdentityUsageAfterOcr();
       }
     } catch (error) {
       errorMessage.value =
           'OCR lỗi: ${ApiClient.messageFrom(error)}. Nhập tay thông tin bên dưới.';
       receiverNameController.text = prefillName ?? '';
-      ocrRawText.value = null;
       ocrOpenAiUsage.value = null;
     } finally {
       isOcrProcessing.value = false;
@@ -409,7 +414,6 @@ class CaptureController extends GetxController {
     errorMessage.value = null;
     ocrIdConfidence.value = null;
     ocrNameConfidence.value = null;
-    ocrRawText.value = null;
     ocrOpenAiUsage.value = null;
     _clearIdentityUsageWarning();
     if (intent == CaptureIntent.qrPrefilled) {
@@ -421,6 +425,9 @@ class CaptureController extends GetxController {
   void _clearIdentityUsageWarning() {
     identityCheckResult.value = null;
     identityUsageWarningShown.value = false;
+    isCheckingIdentity.value = false;
+    _identityUsageDialogAcknowledged = false;
+    _identityUsageAcknowledgedKey = null;
   }
 
   Future<void> confirm() async {
@@ -492,24 +499,32 @@ class CaptureController extends GetxController {
       }
 
       final legacyIdentityNo = cmndNoController.text.trim();
-      final shouldProceed = await _handleIdentityUsageCheck(
-        identityNo: identityNo,
-        receiverName: receiverName,
-        legacyIdentityNo:
-            legacyIdentityNo.isEmpty ? null : legacyIdentityNo,
-      );
-      if (!shouldProceed) return;
+      final legacyValue =
+          legacyIdentityNo.isEmpty ? null : legacyIdentityNo;
+      if (!_isIdentityUsageAcknowledgedFor(
+        identityNo,
+        receiverName,
+        legacyValue,
+      )) {
+        final shouldProceed = await _handleIdentityUsageCheck(
+          identityNo: identityNo,
+          receiverName: receiverName,
+          legacyIdentityNo: legacyValue,
+        );
+        if (!shouldProceed) return;
+      }
 
       Get.back(
         result: IdentityVerification(
           identityNo: identityNo,
           identityType: identityType,
           receiverName: receiverName,
-          legacyIdentityNo:
-              legacyIdentityNo.isEmpty ? null : legacyIdentityNo,
+          legacyIdentityNo: legacyValue,
           photoPath: photoPath,
           photoBytes: evidenceBytes,
           openAiUsage: ocrOpenAiUsage.value,
+          identityUsageCheck: identityCheckResult.value,
+          identityUsageAcknowledged: _identityUsageDialogAcknowledged,
         ),
       );
     } catch (error) {
@@ -568,6 +583,7 @@ class CaptureController extends GetxController {
     required String receiverName,
     String? legacyIdentityNo,
   }) async {
+    isCheckingIdentity.value = true;
     try {
       final primary = await _travelSupportRepository.checkIdentity(
         identityNo: identityNo,
@@ -596,16 +612,49 @@ class CaptureController extends GetxController {
         return true;
       }
 
-      if (!identityUsageWarningShown.value) {
+      identityUsageWarningShown.value = true;
+
+      final usageKey = _identityUsageKey(
+        identityNo,
+        receiverName,
+        legacyIdentityNo,
+      );
+      if (_identityUsageDialogAcknowledged &&
+          _identityUsageAcknowledgedKey == usageKey) {
+        identityUsageWarningShown.value = true;
+        return true;
+      }
+
+      BuildContext? context;
+      try {
+        context = Get.context;
+      } catch (_) {
+        context = null;
+      }
+      if (context == null || !context.mounted) {
         identityUsageWarningShown.value = true;
         errorMessage.value = null;
         return false;
       }
 
+      final accepted = await VerificationIdentityUsageDialog.show(
+        context,
+        check: result,
+      );
+      if (!accepted) return false;
+
+      _identityUsageDialogAcknowledged = true;
+      _identityUsageAcknowledgedKey = usageKey;
+      identityUsageWarningShown.value = true;
+      errorMessage.value = null;
       return true;
     } catch (error) {
       errorMessage.value = ApiClient.messageFrom(error);
       return false;
+    } finally {
+      if (!isClosed) {
+        isCheckingIdentity.value = false;
+      }
     }
   }
 
@@ -619,6 +668,7 @@ class CaptureController extends GetxController {
         alreadyUsed: true,
         usedForMcd: legacy.usedForMcd,
         usedForMcds: legacy.usedForMcds,
+        usedForShareholders: legacy.usedForShareholders,
         receiverName: legacy.receiverName,
         usedIdentityType: legacy.usedIdentityType,
         usedIdentityNo: legacy.usedIdentityNo,
@@ -642,6 +692,10 @@ class CaptureController extends GetxController {
       alreadyUsed: true,
       usedForMcd: mcds.isNotEmpty ? mcds.first : primary.usedForMcd,
       usedForMcds: mcds,
+      usedForShareholders: IdentityCheckResultDto.mergeUsedShareholders(
+        primary,
+        legacy,
+      ),
       receiverName: primary.receiverName ?? legacy.receiverName,
       usedIdentityType: primary.usedIdentityType ?? legacy.usedIdentityType,
       usedIdentityNo: primary.usedIdentityNo ?? legacy.usedIdentityNo,
@@ -661,10 +715,72 @@ class CaptureController extends GetxController {
     };
   }
 
+
+  String _identityUsageKey(
+    String identityNo,
+    String receiverName,
+    String? legacyIdentityNo,
+  ) =>
+      '$identityNo|$receiverName|${legacyIdentityNo ?? ''}';
+
+  bool _isIdentityUsageAcknowledgedFor(
+    String identityNo,
+    String receiverName,
+    String? legacyIdentityNo,
+  ) {
+    return _identityUsageDialogAcknowledged &&
+        _identityUsageAcknowledgedKey ==
+            _identityUsageKey(identityNo, receiverName, legacyIdentityNo);
+  }
+
+  bool get _shouldPreviewIdentityUsageAfterOcr {
+    final type = identityType.toUpperCase();
+    return type == 'CMND' || type == 'PASSPORT';
+  }
+
+  Future<void> _previewIdentityUsageAfterOcr() async {
+    if (!_shouldPreviewIdentityUsageAfterOcr) return;
+
+    final identityNo = identityNoController.text.trim();
+    final receiverName = receiverNameController.text.trim();
+    if (identityNo.isEmpty || receiverName.isEmpty) return;
+
+    final legacy = cmndNoController.text.trim();
+    await _handleIdentityUsageCheck(
+      identityNo: identityNo,
+      receiverName: receiverName,
+      legacyIdentityNo: legacy.isEmpty ? null : legacy,
+    );
+  }
+
   void onIdentityFieldsEdited() {
-    if (identityUsageWarningShown.value) {
+    if (identityUsageWarningShown.value || _identityUsageDialogAcknowledged) {
       _clearIdentityUsageWarning();
     }
+    _scheduleIdentityUsageRecheck();
+  }
+
+  void _scheduleIdentityUsageRecheck() {
+    if (!_shouldPreviewIdentityUsageAfterOcr || !needsOcrReview) return;
+
+    _identityUsageRecheckDebounce?.cancel();
+    _identityUsageRecheckDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(_previewIdentityUsageAfterOcr()),
+    );
+  }
+
+  void acknowledgeIdentityUsageForTesting() {
+    _identityUsageDialogAcknowledged = true;
+    identityUsageWarningShown.value = true;
+    final identityNo = identityNoController.text.trim();
+    final receiverName = receiverNameController.text.trim();
+    final legacy = cmndNoController.text.trim();
+    _identityUsageAcknowledgedKey = _identityUsageKey(
+      identityNo,
+      receiverName,
+      legacy.isEmpty ? null : legacy,
+    );
   }
 
   Future<void> _refreshDashboard() async {

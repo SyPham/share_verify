@@ -20,8 +20,13 @@ class VerificationAttendanceSection extends StatelessWidget {
     final segmentStyle = theme.textTheme.titleSmall?.copyWith(
       fontWeight: FontWeight.w600,
     );
-    final segmentStyle2 = theme.textTheme.titleSmall
-        ?.copyWith(fontWeight: FontWeight.w600, color: Colors.white);
+
+    Color segmentForeground(AttendanceType type) {
+      return attendanceType == type
+          ? SvPalette.onPrimary
+          : SvPalette.primary;
+    }
+
     return SvCard(
       padding: const EdgeInsets.symmetric(
         horizontal: SvSpacing.cardPadding,
@@ -46,14 +51,29 @@ class VerificationAttendanceSection extends StatelessWidget {
                   value: AttendanceType.direct,
                   label: Text(
                     'Trực tiếp',
-                    style: segmentStyle2,
+                    style: segmentStyle?.copyWith(
+                      color: segmentForeground(AttendanceType.direct),
+                    ),
                   ),
-                  icon: const Icon(Icons.person_outline, size: 22),
+                  icon: Icon(
+                    Icons.person_outline,
+                    size: 22,
+                    color: segmentForeground(AttendanceType.direct),
+                  ),
                 ),
                 ButtonSegment(
                   value: AttendanceType.proxy,
-                  label: Text('Ủy quyền', style: segmentStyle),
-                  icon: const Icon(Icons.assignment_ind_outlined, size: 22),
+                  label: Text(
+                    'Ủy quyền',
+                    style: segmentStyle?.copyWith(
+                      color: segmentForeground(AttendanceType.proxy),
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.assignment_ind_outlined,
+                    size: 22,
+                    color: segmentForeground(AttendanceType.proxy),
+                  ),
                 ),
               ],
               selected: {attendanceType},
@@ -72,7 +92,7 @@ class VerificationAttendanceSection extends StatelessWidget {
                   if (states.contains(WidgetState.selected)) {
                     return SvPalette.onPrimary;
                   }
-                  return SvPalette.onSurface;
+                  return SvPalette.primary;
                 }),
                 backgroundColor: WidgetStateProperty.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) {

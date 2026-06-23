@@ -4,6 +4,7 @@ import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
+import 'package:share_verify/core/widgets/identity_usage_shareholder_section.dart';
 import 'package:share_verify/core/widgets/sv_primary_button.dart';
 
 class VerificationIdentityUsageWarning extends GetView<VerificationController> {
@@ -25,8 +26,6 @@ class VerificationIdentityUsageWarning extends GetView<VerificationController> {
       }
 
       final theme = Theme.of(context);
-      final mcds = controller.usedShareholderCodes;
-
       return Padding(
         padding: const EdgeInsets.only(top: SvSpacing.lg),
         child: SvCard(
@@ -60,42 +59,14 @@ class VerificationIdentityUsageWarning extends GetView<VerificationController> {
                   height: 1.4,
                 ),
               ),
-              if (mcds.isNotEmpty) ...[
-                const SizedBox(height: SvSpacing.sm),
-                Text(
-                  'Mã cổ đông đã nhận:',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+              const SizedBox(height: SvSpacing.sm),
+              IdentityUsageShareholderSection(
+                check: check,
+                titleStyle: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
                 ),
-                const SizedBox(height: SvSpacing.xs),
-                Wrap(
-                  spacing: SvSpacing.xs,
-                  runSpacing: SvSpacing.xs,
-                  children: [
-                    for (final mcd in mcds)
-                      Chip(
-                        avatar: Icon(
-                          Icons.confirmation_number_outlined,
-                          size: 16,
-                          color: SvPalette.onErrorContainer,
-                        ),
-                        label: Text(
-                          mcd,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: SvPalette.onErrorContainer,
-                          ),
-                        ),
-                        backgroundColor: SvPalette.errorContainer,
-                        side: BorderSide(
-                          color: SvPalette.error.withValues(alpha: 0.25),
-                        ),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                  ],
-                ),
-              ],
+              ),
               const SizedBox(height: SvSpacing.sm),
               Obx(() {
                 final canProceed = controller.canProceedToBarcodeScreen;

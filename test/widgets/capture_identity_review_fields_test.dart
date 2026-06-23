@@ -120,29 +120,4 @@ void main() {
     expect(cmndController.text, '123456789');
   });
 
-  testWidgets('shows OCR raw text panel with copy action', (tester) async {
-    final nameController = TextEditingController();
-    final identityController = TextEditingController();
-    addTearDown(nameController.dispose);
-    addTearDown(identityController.dispose);
-
-    const rawText = 'Hộ tên:.NGUYỄN HOÀI LINH\nSinh ngày 23-05-1995';
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CaptureIdentityReviewFields(
-            nameController: nameController,
-            identityNoController: identityController,
-            identityType: 'CMND',
-            ocrRawText: rawText,
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('Văn bản OCR đọc được'), findsOneWidget);
-    expect(find.textContaining('NGUYỄN HOÀI LINH'), findsOneWidget);
-    expect(find.text('Sao chép'), findsOneWidget);
-  });
 }

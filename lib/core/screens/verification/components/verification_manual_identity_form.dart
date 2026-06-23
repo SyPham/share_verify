@@ -6,14 +6,11 @@ import 'package:share_verify/core/controllers/verification_controller.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/utils/identity_type_utils.dart';
-import 'package:share_verify/core/widgets/evidence_photo_preview.dart';
 import 'package:share_verify/core/widgets/identity_type_radio_group.dart';
 import 'package:share_verify/core/widgets/name_autocomplete_field.dart';
 import 'package:share_verify/core/widgets/open_ai_usage_banner.dart';
 import 'package:share_verify/core/widgets/registration_no_autocomplete_field.dart';
 import 'package:share_verify/core/widgets/sv_card.dart';
-import 'package:share_verify/core/widgets/sv_outlined_button.dart';
-import 'package:share_verify/core/widgets/sv_primary_button.dart';
 
 class VerificationManualIdentityForm extends GetView<VerificationController> {
   const VerificationManualIdentityForm({super.key});
@@ -53,9 +50,9 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
             };
             final hint = switch (prefillSource) {
               ManualFormPrefillSource.qr =>
-                'Kiểm tra và chỉnh sửa thông tin, sau đó chụp ảnh chứng cứ và quét mã cổ đông.',
+                'Kiểm tra và chỉnh sửa thông tin, sau đó tiếp tục chụp ảnh chứng cứ.',
               ManualFormPrefillSource.capture =>
-                'Kiểm tra và chỉnh sửa thông tin, sau đó quét mã cổ đông.',
+                'Kiểm tra và chỉnh sửa thông tin, sau đó tiếp tục chụp ảnh chứng cứ.',
               null => null,
             };
             return Column(
@@ -180,38 +177,7 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
               onChanged: (v) => controller.manualIdentityType.value = v,
             ),
           ),
-          const SizedBox(height: SvSpacing.sm),
-          Obx(() {
-            final hasPhoto = controller.manualPhotoPath.value != null;
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (hasPhoto) ...[
-                  EvidencePhotoPreview(
-                    photoBytes: controller.manualPhotoBytes.value,
-                    photoPath: controller.manualPhotoPath.value,
-                  ),
-                  const SizedBox(height: SvSpacing.sm),
-                ],
-                SvPrimaryButton(
-                  label: hasPhoto
-                      ? 'Chụp lại ảnh chứng cứ'
-                      : 'Chụp ảnh chứng cứ',
-                  icon: Icons.camera_alt_outlined,
-                  onPressed: controller.onCaptureManualPhoto,
-                  backgroundColor: theme.colorScheme.secondaryContainer,
-                  foregroundColor: theme.colorScheme.onSecondaryContainer,
-                ),
-                const SizedBox(height: SvSpacing.sm),
-                SvOutlinedButton(
-                  label: 'Xóa và nhập lại',
-                  icon: Icons.restart_alt,
-                  onPressed: controller.resetManualIdentityForm,
-                  foregroundColor: theme.colorScheme.onSurfaceVariant,
-                ),
-              ],
-            );
-          }),
+
         ],
       ),
     );

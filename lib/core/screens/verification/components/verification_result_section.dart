@@ -14,6 +14,7 @@ class VerificationResultSection extends StatelessWidget {
   final VoidCallback? onProcessNextPerson;
   final bool isSubmitting;
   final bool isLoadingRecipients;
+  final bool receiveJustCompleted;
 
   const VerificationResultSection({
     super.key,
@@ -22,6 +23,7 @@ class VerificationResultSection extends StatelessWidget {
     this.onProcessNextPerson,
     this.isSubmitting = false,
     this.isLoadingRecipients = false,
+    this.receiveJustCompleted = false,
   });
 
   @override
@@ -91,9 +93,21 @@ class VerificationResultSection extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (shareholder.status == PaymentStatus.received) ...[
+                if (receiveJustCompleted) ...[
                   const SizedBox(height: SvSpacing.md),
-                  if (onViewRecipients != null)
+                  Text(
+                    'Đã ghi nhận hỗ trợ thành công.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.tertiary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                if (shareholder.status == PaymentStatus.received ||
+                    receiveJustCompleted) ...[
+                  const SizedBox(height: SvSpacing.md),
+                  if (onViewRecipients != null &&
+                      shareholder.status == PaymentStatus.received)
                     SvPrimaryButton(
                       label: isLoadingRecipients
                           ? 'Đang tải...'
@@ -104,7 +118,9 @@ class VerificationResultSection extends StatelessWidget {
                       foregroundColor: theme.colorScheme.onSecondaryContainer,
                       height: 56,
                     ),
-                  if (onViewRecipients != null) const SizedBox(height: SvSpacing.sm),
+                  if (onViewRecipients != null &&
+                      shareholder.status == PaymentStatus.received)
+                    const SizedBox(height: SvSpacing.sm),
                   if (onProcessNextPerson != null) ...[
                     SvPrimaryButton(
                       label: 'Xử lý người tiếp theo',
@@ -114,12 +130,13 @@ class VerificationResultSection extends StatelessWidget {
                     ),
                     const SizedBox(height: SvSpacing.sm),
                   ],
-                  Text(
-                    'Cổ đông này đã nhận phụ cấp.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  if (!receiveJustCompleted)
+                    Text(
+                      'Cổ đông này đã nhận phụ cấp.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
                 ],
               ],
             ),
@@ -141,9 +158,11 @@ class VerificationResultSection extends StatelessWidget {
                 const SizedBox(width: SvSpacing.xs),
                 Expanded(
                   child: Text(
-                    shareholder.status == PaymentStatus.received
-                        ? 'Xem chi tiết người nhận và ảnh chứng cứ bên trên.'
-                        : isSubmitting
+                    receiveJustCompleted
+                        ? 'Nhấn "Xử lý người tiếp theo" để quay về bước 1.'
+                        : shareholder.status == PaymentStatus.received
+                            ? 'Xem chi tiết người nhận và ảnh chứng cứ bên trên.'
+                            : isSubmitting
                             ? 'Hệ thống đang tự động lưu sau khi quét mã cổ đông.'
                             : 'Thông tin sẽ được lưu tự động khi quét mã cổ đông.',
                     style: theme.textTheme.bodySmall?.copyWith(

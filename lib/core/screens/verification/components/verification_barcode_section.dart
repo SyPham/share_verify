@@ -19,7 +19,7 @@ class VerificationBarcodeSection extends GetView<VerificationController> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Quét mã thiệp mời',
+            'Quét mã cổ đông',
             style: theme.textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -35,9 +35,73 @@ class VerificationBarcodeSection extends GetView<VerificationController> {
           Obx(() {
             final isSearching = controller.isSearching.value;
             return SvPrimaryButton(
-              label: isSearching ? 'Đang quét...' : 'Quét Mã Thiệp Mời',
+              label: isSearching ? 'Đang quét...' : 'Quét mã cổ đông',
               icon: Icons.qr_code_2,
               onPressed: isSearching ? null : controller.onScanInvitationBarcode,
+            );
+          }),
+          const SizedBox(height: SvSpacing.md),
+          Row(
+            children: [
+              Expanded(child: Divider(color: SvPalette.outlineVariant)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: SvSpacing.sm),
+                child: Text(
+                  'hoặc',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              Expanded(child: Divider(color: SvPalette.outlineVariant)),
+            ],
+          ),
+          const SizedBox(height: SvSpacing.md),
+          Text(
+            'Nhập mã cổ đông',
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: SvSpacing.xs),
+          Text(
+            'Nhập trực tiếp mã MCD trên thiệp mời',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          TextField(
+            controller: controller.barcodeInputController,
+            textCapitalization: TextCapitalization.characters,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => controller.onManualBarcodeEntry(),
+            decoration: InputDecoration(
+              labelText: 'Mã cổ đông',
+              hintText: 'VD: SH0001',
+              filled: true,
+              fillColor: SvPalette.surface,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+                borderSide: const BorderSide(color: SvPalette.outline),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+                borderSide: const BorderSide(color: SvPalette.outline),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(SvSpacing.radiusLg),
+                borderSide: const BorderSide(color: SvPalette.primary, width: 2),
+              ),
+            ),
+          ),
+          const SizedBox(height: SvSpacing.sm),
+          Obx(() {
+            final isSearching = controller.isSearching.value;
+            return SvPrimaryButton(
+              label: isSearching ? 'Đang xử lý...' : 'Xác nhận mã cổ đông',
+              icon: Icons.check,
+              onPressed: isSearching ? null : controller.onManualBarcodeEntry,
             );
           }),
           const SizedBox(height: SvSpacing.md),

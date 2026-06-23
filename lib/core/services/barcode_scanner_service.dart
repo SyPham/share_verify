@@ -5,7 +5,7 @@ class BarcodeScannerService {
   Future<String?> scanInvitation(BuildContext context) {
     return _openScanner(
       context,
-      title: 'Quét Mã Thiệp Mời',
+      title: 'Quét mã cổ đông',
       instruction: 'Đưa mã QR trên thiệp mời vào giữa khung hình',
     );
   }
