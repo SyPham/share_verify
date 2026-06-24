@@ -117,28 +117,6 @@ class VerificationController extends GetxController {
       scannedBarcode.value != null ||
       selectedPickerShareholder.value != null;
 
-  bool get canSwipeToNextStep {
-    if (isCheckingIdentity.value) return false;
-    return switch (verificationStep.value) {
-      VerificationStep.attendance => true,
-      VerificationStep.identity => isIdentityInfoReady,
-      VerificationStep.evidence => isIdentityReady,
-      VerificationStep.barcode => hasShareholderSelected,
-    };
-  }
-
-  bool get canSwipeToPreviousStep => !isOnAttendanceStep;
-
-  String get swipeLeftHint => switch (verificationStep.value) {
-        VerificationStep.barcode when hasShareholderSelected =>
-          'Vuốt sang trái để xử lý người tiếp theo',
-        VerificationStep.barcode => '',
-        _ => 'Vuốt sang trái để tiếp tục',
-      };
-
-  String get swipeRightHint =>
-      canSwipeToPreviousStep ? 'Vuốt sang phải để quay lại' : '';
-
   bool get hasIdentityUsageWarning =>
       identityCheckResult.value?.alreadyUsed == true;
 
@@ -263,27 +241,6 @@ class VerificationController extends GetxController {
     if (isOnIdentityStep && isIdentityInfoReady) {
       _identityUsageDialogShown.value = false;
       _scheduleManualIdentityUsageRecheck();
-    }
-  }
-
-  void swipeToNextStep() {
-    switch (verificationStep.value) {
-      case VerificationStep.attendance:
-        advanceToIdentityStep();
-      case VerificationStep.identity:
-        unawaited(advanceToEvidenceStep());
-      case VerificationStep.evidence:
-        unawaited(advanceToBarcodeStep());
-      case VerificationStep.barcode:
-        if (hasShareholderSelected) {
-          unawaited(processNextPerson());
-        }
-    }
-  }
-
-  void swipeToPreviousStep() {
-    if (canSwipeToPreviousStep) {
-      goBackStep();
     }
   }
 

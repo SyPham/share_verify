@@ -11,7 +11,6 @@ import 'package:share_verify/core/screens/verification/components/verification_e
 import 'package:share_verify/core/screens/verification/components/verification_evidence_step.dart';
 import 'package:share_verify/core/screens/verification/components/verification_identity_step.dart';
 import 'package:share_verify/core/screens/verification/components/verification_step_indicator.dart';
-import 'package:share_verify/core/screens/verification/components/verification_step_swipe_navigator.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
 import 'package:share_verify/core/widgets/sv_server_config_banner.dart';
 
@@ -47,65 +46,51 @@ class VerificationScreen extends GetView<VerificationController> {
       ),
       body: Obx(() {
         final step = controller.verificationStep.value;
-        final canSwipeLeft = controller.canSwipeToNextStep;
-        final canSwipeRight = controller.canSwipeToPreviousStep;
-        final leftHint =
-            canSwipeLeft ? controller.swipeLeftHint : null;
-        final rightHint =
-            canSwipeRight ? controller.swipeRightHint : null;
 
         return Padding(
           padding: _bodyPadding,
-          child: VerificationStepSwipeNavigator(
-            canSwipeLeft: canSwipeLeft,
-            canSwipeRight: canSwipeRight,
-            onSwipeLeft: controller.swipeToNextStep,
-            onSwipeRight: controller.swipeToPreviousStep,
-            swipeLeftHint: leftHint,
-            swipeRightHint: rightHint,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SvServerConfigBanner(),
-                  const SizedBox(height: SvSpacing.md),
-                  VerificationStepIndicator(current: step),
-                  const SizedBox(height: SvSpacing.lg),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 260),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
-                      final slide = Tween<Offset>(
-                        begin: const Offset(0.04, 0),
-                        end: Offset.zero,
-                      ).animate(animation);
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(position: slide, child: child),
-                      );
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SvServerConfigBanner(),
+                const SizedBox(height: SvSpacing.md),
+                VerificationStepIndicator(current: step),
+                const SizedBox(height: SvSpacing.lg),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 260),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) {
+                    final slide = Tween<Offset>(
+                      begin: const Offset(0.04, 0),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(position: slide, child: child),
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey(step),
+                    child: switch (step) {
+                      VerificationStep.attendance =>
+                        const VerificationAttendanceStep(),
+                      VerificationStep.identity =>
+                        const VerificationIdentityStepBody(),
+                      VerificationStep.evidence =>
+                        const VerificationEvidenceStep(),
+                      VerificationStep.barcode =>
+                        const VerificationBarcodeStep(),
                     },
-                    child: KeyedSubtree(
-                      key: ValueKey(step),
-                      child: switch (step) {
-                        VerificationStep.attendance =>
-                          const VerificationAttendanceStep(),
-                        VerificationStep.identity =>
-                          const VerificationIdentityStepBody(),
-                        VerificationStep.evidence =>
-                          const VerificationEvidenceStep(),
-                        VerificationStep.barcode =>
-                          const VerificationBarcodeStep(),
-                      },
-                    ),
                   ),
-                  _buildErrorBanner(),
-                  if (step == VerificationStep.identity)
-                    const VerificationIdentityStepFooter(),
-                  if (step == VerificationStep.barcode)
-                    const VerificationBarcodeStepFooter(),
-                ],
-              ),
+                ),
+                _buildErrorBanner(),
+                if (step == VerificationStep.identity)
+                  const VerificationIdentityStepFooter(),
+                if (step == VerificationStep.barcode)
+                  const VerificationBarcodeStepFooter(),
+              ],
             ),
           ),
         );

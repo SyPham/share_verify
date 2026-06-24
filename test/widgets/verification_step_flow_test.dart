@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
 import 'package:share_verify/core/models/attendance_type.dart';
 import 'package:share_verify/core/models/verification_step.dart';
-import 'package:share_verify/core/screens/verification/components/verification_step_swipe_navigator.dart';
 import 'package:share_verify/core/screens/verification/verification_screen.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/services/barcode_scanner_service.dart';
@@ -64,7 +63,6 @@ void main() {
     await pumpApp(tester, const VerificationScreen());
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(find.text('Tiếp tục chụp ảnh chứng cứ'), findsOneWidget);
-    expect(find.text('Vuốt sang trái để tiếp tục'), findsOneWidget);
   });
 
   testWidgets('step 2 shows continue after identity info is filled', (tester) async {
@@ -75,68 +73,7 @@ void main() {
     await pumpApp(tester, const VerificationScreen());
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(find.text('Tiếp tục chụp ảnh chứng cứ'), findsOneWidget);
-    expect(find.text('Vuốt sang trái để tiếp tục'), findsOneWidget);
   });
-
-  testWidgets('step 2 swipe left advances to evidence step', (tester) async {
-    final c = Get.find<VerificationController>();
-    c.advanceToIdentityStep();
-    c.manualNameController.text = 'Nguyễn Văn A';
-    c.manualIdController.text = '001234567890';
-    await pumpApp(tester, const VerificationScreen());
-    await tester.pumpAndSettle(const Duration(milliseconds: 500));
-
-    final swipeArea = find.byKey(VerificationStepSwipeNavigator.navigatorKey);
-    await tester.fling(swipeArea, const Offset(-300, 0), 1200);
-    await tester.pumpAndSettle();
-
-    expect(c.verificationStep.value, VerificationStep.evidence);
-    expect(find.text('Bước 3/4'), findsOneWidget);
-  });
-
-
-
-  testWidgets('step 1 remembers proxy after swipe back from step 2', (tester) async {
-    await pumpApp(tester, const VerificationScreen());
-    await tester.tap(find.text('Ủy quyền'));
-    await tester.pumpAndSettle();
-
-    final c = Get.find<VerificationController>();
-    expect(c.attendanceType.value, AttendanceType.proxy);
-
-    final continueButton = find.widgetWithText(SvPrimaryButton, 'Tiếp tục');
-    await tester.ensureVisible(continueButton);
-    await tester.tap(continueButton);
-    await tester.pumpAndSettle();
-
-    final swipeArea = find.byKey(VerificationStepSwipeNavigator.navigatorKey);
-    await tester.fling(swipeArea, const Offset(300, 0), 1200);
-    await tester.pumpAndSettle();
-
-    expect(c.verificationStep.value, VerificationStep.attendance);
-    expect(c.attendanceType.value, AttendanceType.proxy);
-    expect(
-      find.text(
-        'Lưu thông tin giấy tờ của người được ủy quyền đến nhận (họ tên, số giấy tờ, loại, ảnh).',
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('step 2 swipe right goes back to step 1', (tester) async {
-    final c = Get.find<VerificationController>();
-    c.advanceToIdentityStep();
-    await pumpApp(tester, const VerificationScreen());
-    await tester.pumpAndSettle(const Duration(milliseconds: 500));
-
-    final swipeArea = find.byKey(VerificationStepSwipeNavigator.navigatorKey);
-    await tester.fling(swipeArea, const Offset(300, 0), 1200);
-    await tester.pumpAndSettle();
-
-    expect(c.verificationStep.value, VerificationStep.attendance);
-    expect(find.text('Bước 1/4'), findsOneWidget);
-  });
-
 
   testWidgets('processNextPerson keeps proxy on step 1', (tester) async {
     final c = Get.find<VerificationController>();
@@ -160,26 +97,6 @@ void main() {
       ),
       findsOneWidget,
     );
-  });
-
-  testWidgets('step 4 swipe left with shareholder resets to step 1', (tester) async {
-    final c = Get.find<VerificationController>();
-    c.manualNameController.text = 'Nguyễn Văn A';
-    c.manualIdController.text = '001234567890';
-    c.manualPhotoPath.value = 'uploads/test.jpg';
-    c.verificationStep.value = VerificationStep.barcode;
-    await c.onBarcodeScanned('SH0001');
-    await pumpApp(tester, const VerificationScreen());
-    await tester.pumpAndSettle(const Duration(milliseconds: 500));
-
-    expect(c.selectedShareholder.value, isNotNull);
-
-    final swipeArea = find.byKey(VerificationStepSwipeNavigator.navigatorKey);
-    await tester.fling(swipeArea, const Offset(-300, 0), 1200);
-    await tester.pumpAndSettle();
-
-    expect(c.verificationStep.value, VerificationStep.attendance);
-    expect(c.selectedShareholder.value, isNull);
   });
 
   testWidgets('step 3 shows evidence capture button', (tester) async {

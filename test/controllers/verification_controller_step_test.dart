@@ -105,7 +105,7 @@ void main() {
   });
 
 
-  test('swipeToNextStep on barcode with shareholder resets to step 1', () async {
+  test('processNextPerson on barcode with shareholder resets to step 1', () async {
     final c = createController();
     setIdentityReady(c);
     c.verificationStep.value = VerificationStep.barcode;
@@ -118,20 +118,10 @@ void main() {
     expect(c.selectedShareholder.value, isNull);
   });
 
-  test('canSwipeToNextStep on barcode requires shareholder', () {
-    final c = createController();
-    c.verificationStep.value = VerificationStep.barcode;
-    expect(c.canSwipeToNextStep, isFalse);
-
-    c.selectedShareholder.value = null;
-    c.scannedBarcode.value = null;
-    expect(c.canSwipeToNextStep, isFalse);
-  });
-
-  test('swipeToPreviousStep from identity goes to attendance', () {
+  test('goBackStep from identity goes to attendance', () {
     final c = createController();
     c.verificationStep.value = VerificationStep.identity;
-    c.swipeToPreviousStep();
+    c.goBackStep();
     expect(c.verificationStep.value, VerificationStep.attendance);
   });
 

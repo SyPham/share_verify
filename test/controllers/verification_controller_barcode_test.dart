@@ -134,7 +134,6 @@ void main() {
     );
 
     expect(c.hasShareholderSelected, isTrue);
-    expect(c.canSwipeToNextStep, isTrue);
   });
 
   test('onShareholderPicked auto-receives and marks receiveJustCompleted', () async {
