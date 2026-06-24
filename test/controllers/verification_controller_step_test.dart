@@ -49,10 +49,10 @@ void main() {
     expect(c.errorMessage.value, isNotNull);
   });
 
-  test('advanceToEvidenceStep moves to step 3 when info ready', () {
+  test('advanceToEvidenceStep moves to step 3 when info ready', () async {
     final c = createController();
     setIdentityInfoReady(c);
-    c.advanceToEvidenceStep();
+    await c.advanceToEvidenceStep();
     expect(c.verificationStep.value, VerificationStep.evidence);
   });
 
@@ -105,14 +105,24 @@ void main() {
   });
 
 
-  test('processNextPerson on barcode with shareholder resets to step 1', () async {
+  test('canGoToNextStep on barcode requires shareholder', () {
+    final c = createController();
+    c.verificationStep.value = VerificationStep.barcode;
+    expect(c.canGoToNextStep, isFalse);
+
+    c.selectedShareholder.value = null;
+    c.scannedBarcode.value = null;
+    expect(c.canGoToNextStep, isFalse);
+  });
+
+  test('goToNextStep on barcode with shareholder resets to step 1', () async {
     final c = createController();
     setIdentityReady(c);
     c.verificationStep.value = VerificationStep.barcode;
     await c.onBarcodeScanned('SH0001');
     expect(c.selectedShareholder.value, isNotNull);
 
-    await c.processNextPerson();
+    await c.goToNextStep();
 
     expect(c.verificationStep.value, VerificationStep.attendance);
     expect(c.selectedShareholder.value, isNull);

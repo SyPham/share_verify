@@ -10,7 +10,7 @@ import 'package:share_verify/core/screens/verification/components/verification_b
 import 'package:share_verify/core/screens/verification/components/verification_error_banner.dart';
 import 'package:share_verify/core/screens/verification/components/verification_evidence_step.dart';
 import 'package:share_verify/core/screens/verification/components/verification_identity_step.dart';
-import 'package:share_verify/core/screens/verification/components/verification_step_indicator.dart';
+import 'package:share_verify/core/screens/verification/components/verification_step_navigation_controls.dart';
 import 'package:share_verify/core/widgets/sv_app_bar.dart';
 import 'package:share_verify/core/widgets/sv_server_config_banner.dart';
 
@@ -55,7 +55,7 @@ class VerificationScreen extends GetView<VerificationController> {
               children: [
                 const SvServerConfigBanner(),
                 const SizedBox(height: SvSpacing.md),
-                VerificationStepIndicator(current: step),
+                const VerificationStepNavigationControls(),
                 const SizedBox(height: SvSpacing.lg),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 260),

@@ -13,14 +13,6 @@ class VerificationIdentityStepBody extends GetView<VerificationController> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: controller.goBackStep,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Quay lại'),
-          ),
-        ),
         const VerificationIdentitySection(),
         const SizedBox(height: SvSpacing.md),
         Obx(() {

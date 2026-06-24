@@ -5,8 +5,15 @@ import 'package:share_verify/core/models/verification_step.dart';
 
 class VerificationStepIndicator extends StatelessWidget {
   final VerificationStep current;
+  final Widget? leading;
+  final Widget? trailing;
 
-  const VerificationStepIndicator({super.key, required this.current});
+  const VerificationStepIndicator({
+    super.key,
+    required this.current,
+    this.leading,
+    this.trailing,
+  });
 
   static const _steps = VerificationStep.values;
 
@@ -20,13 +27,22 @@ class VerificationStepIndicator extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Bước ${current.number}/$total',
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: SvPalette.primary,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.3,
-            ),
+          Row(
+            children: [
+              if (leading != null) leading!,
+              Expanded(
+                child: Text(
+                  'Bước ${current.number}/$total',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: SvPalette.primary,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
           ),
           const SizedBox(height: SvSpacing.xs),
           Text(

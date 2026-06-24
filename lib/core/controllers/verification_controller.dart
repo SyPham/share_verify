@@ -117,6 +117,21 @@ class VerificationController extends GetxController {
       scannedBarcode.value != null ||
       selectedPickerShareholder.value != null;
 
+  bool get canGoToPreviousStep => !isOnAttendanceStep;
+
+  bool get canGoToNextStep {
+    if (isCheckingIdentity.value) return false;
+    if (isOnBarcodeStep && (isSubmitting.value || isSearching.value)) {
+      return false;
+    }
+    return switch (verificationStep.value) {
+      VerificationStep.attendance => true,
+      VerificationStep.identity => isIdentityInfoReady,
+      VerificationStep.evidence => isIdentityReady,
+      VerificationStep.barcode => hasShareholderSelected,
+    };
+  }
+
   bool get hasIdentityUsageWarning =>
       identityCheckResult.value?.alreadyUsed == true;
 
@@ -241,6 +256,21 @@ class VerificationController extends GetxController {
     if (isOnIdentityStep && isIdentityInfoReady) {
       _identityUsageDialogShown.value = false;
       _scheduleManualIdentityUsageRecheck();
+    }
+  }
+
+  Future<void> goToNextStep() async {
+    switch (verificationStep.value) {
+      case VerificationStep.attendance:
+        advanceToIdentityStep();
+      case VerificationStep.identity:
+        await advanceToEvidenceStep();
+      case VerificationStep.evidence:
+        await advanceToBarcodeStep();
+      case VerificationStep.barcode:
+        if (hasShareholderSelected) {
+          await processNextPerson();
+        }
     }
   }
 

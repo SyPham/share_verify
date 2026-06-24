@@ -33,16 +33,22 @@ class SvKpiCard extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 16, color: foregroundColor),
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Icon(icon, size: 16, color: foregroundColor),
+            ),
             const SizedBox(width: 4),
             Expanded(
               child: Text(
                 label,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelLarge?.copyWith(
                   color: foregroundColor.withValues(alpha: 0.9),
+                  height: 1.2,
+                  fontSize: 13,
                 ),
               ),
             ),

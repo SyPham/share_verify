@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
 import 'package:share_verify/core/models/attendance_type.dart';
 import 'package:share_verify/core/models/verification_step.dart';
+import 'package:share_verify/core/screens/verification/components/verification_step_navigation_controls.dart';
 import 'package:share_verify/core/screens/verification/verification_screen.dart';
 import 'package:share_verify/core/services/app_config_service.dart';
 import 'package:share_verify/core/services/barcode_scanner_service.dart';
@@ -22,6 +24,21 @@ void main() {
   });
   tearDown(Get.reset);
 
+  testWidgets('step 2 identity actions fit on narrow screens', (tester) async {
+    final c = Get.find<VerificationController>();
+    c.advanceToIdentityStep();
+
+    for (final width in [320.0, 360.0]) {
+      await tester.binding.setSurfaceSize(Size(width, 640));
+      await pumpApp(tester, const VerificationScreen());
+      await tester.pumpAndSettle(const Duration(milliseconds: 500));
+      expect(tester.takeException(), isNull);
+      expect(find.text('Quét QR CCCD'), findsOneWidget);
+      expect(find.text('Chụp CMND'), findsOneWidget);
+      expect(find.text('Chụp Hộ chiếu'), findsOneWidget);
+    }
+  });
+
   testWidgets('step 1 shows attendance only and continue button', (tester) async {
     await pumpApp(tester, const VerificationScreen());
     expect(find.text('Bước 1/4'), findsOneWidget);
@@ -29,6 +46,62 @@ void main() {
     expect(find.text('Ủy quyền'), findsOneWidget);
     expect(find.text('Quét QR CCCD'), findsNothing);
     expect(find.text('Tiếp tục'), findsOneWidget);
+    expect(find.byKey(VerificationStepNavigationControls.backKey), findsOneWidget);
+    expect(find.byKey(VerificationStepNavigationControls.forwardKey), findsOneWidget);
+  });
+
+  testWidgets('step 1 disables back and enables forward nav', (tester) async {
+    await pumpApp(tester, const VerificationScreen());
+    final back = tester.widget<IconButton>(
+      find.byKey(VerificationStepNavigationControls.backKey),
+    );
+    final forward = tester.widget<IconButton>(
+      find.byKey(VerificationStepNavigationControls.forwardKey),
+    );
+    expect(back.onPressed, isNull);
+    expect(forward.onPressed, isNotNull);
+  });
+
+  testWidgets('forward nav advances from step 1 to step 2', (tester) async {
+    await pumpApp(tester, const VerificationScreen());
+    await tester.tap(find.byKey(VerificationStepNavigationControls.forwardKey));
+    await tester.pumpAndSettle();
+    final c = Get.find<VerificationController>();
+    expect(c.verificationStep.value, VerificationStep.identity);
+  });
+
+  testWidgets('step 2 disables forward until identity info is ready', (tester) async {
+    final c = Get.find<VerificationController>();
+    c.advanceToIdentityStep();
+    await pumpApp(tester, const VerificationScreen());
+    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+    final forward = tester.widget<IconButton>(
+      find.byKey(VerificationStepNavigationControls.forwardKey),
+    );
+    expect(forward.onPressed, isNull);
+
+    c.manualNameController.text = 'Nguyễn Văn A';
+    c.manualIdController.text = '001234567890';
+    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+    final forwardReady = tester.widget<IconButton>(
+      find.byKey(VerificationStepNavigationControls.forwardKey),
+    );
+    expect(forwardReady.onPressed, isNotNull);
+  });
+
+  testWidgets('back nav returns from step 2 to step 1', (tester) async {
+    final c = Get.find<VerificationController>();
+    c.advanceToIdentityStep();
+    await pumpApp(tester, const VerificationScreen());
+    await tester.pumpAndSettle(const Duration(milliseconds: 500));
+
+    await tester.tap(find.byKey(VerificationStepNavigationControls.backKey));
+    await tester.pumpAndSettle();
+
+    expect(c.verificationStep.value, VerificationStep.attendance);
+    expect(find.text('Bước 1/4'), findsOneWidget);
   });
 
   testWidgets('continue advances to step 2 identity section', (tester) async {
@@ -119,7 +192,8 @@ void main() {
     await pumpApp(tester, const VerificationScreen());
     await tester.pumpAndSettle(const Duration(milliseconds: 500));
     expect(find.text('Bước 4/4'), findsOneWidget);
-    expect(find.text('Nhập mã cổ đông'), findsOneWidget);
+    expect(find.text('Nhập trực tiếp mã MCD trên thiệp mời'), findsNothing);
+    expect(find.text('Xác nhận mã cổ đông'), findsNothing);
   });
 
 

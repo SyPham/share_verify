@@ -42,20 +42,17 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
         children: [
           Obx(() {
             final prefillSource = controller.manualFormPrefillSource.value;
+            if (prefillSource == null) return const SizedBox.shrink();
+
             final identityType = controller.manualIdentityType.value;
             final title = switch (prefillSource) {
               ManualFormPrefillSource.qr => 'Thông tin từ QR CCCD',
               ManualFormPrefillSource.capture =>
                 _captureFormTitle(identityType),
-              null => 'Nhập tay thông tin giấy tờ',
             };
-            final hint = switch (prefillSource) {
-              ManualFormPrefillSource.qr =>
-                'Kiểm tra và chỉnh sửa thông tin, sau đó tiếp tục chụp ảnh chứng cứ.',
-              ManualFormPrefillSource.capture =>
-                'Kiểm tra và chỉnh sửa thông tin, sau đó tiếp tục chụp ảnh chứng cứ.',
-              null => null,
-            };
+            const hint =
+                'Kiểm tra và chỉnh sửa thông tin, sau đó tiếp tục chụp ảnh chứng cứ.';
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -65,16 +62,15 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                if (hint != null) ...[
-                  const SizedBox(height: SvSpacing.xs),
-                  Text(
-                    hint,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: SvPalette.onSurfaceVariant,
-                      height: 1.35,
-                    ),
+                const SizedBox(height: SvSpacing.xs),
+                Text(
+                  hint,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: SvPalette.onSurfaceVariant,
+                    height: 1.35,
                   ),
-                ],
+                ),
+                const SizedBox(height: SvSpacing.sm),
               ],
             );
           }),
@@ -83,12 +79,11 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
             if (usage == null) return const SizedBox.shrink();
             return Column(
               children: [
-                const SizedBox(height: SvSpacing.sm),
                 OpenAiUsageBanner(usage: usage),
+                const SizedBox(height: SvSpacing.sm),
               ],
             );
           }),
-          const SizedBox(height: SvSpacing.sm),
           Obx(() {
             final isDirect =
                 controller.attendanceType.value == AttendanceType.direct;
