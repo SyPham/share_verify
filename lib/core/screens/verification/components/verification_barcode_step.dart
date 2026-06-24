@@ -42,7 +42,6 @@ class VerificationBarcodeStep extends GetView<VerificationController> {
                 isLoadingRecipients: controller.isLoadingRecipients.value,
                 receiveJustCompleted: controller.receiveJustCompleted.value,
                 onViewRecipients: () => controller.onViewRecipientInfo(context),
-                onProcessNextPerson: controller.processNextPerson,
               ),
             ],
           );

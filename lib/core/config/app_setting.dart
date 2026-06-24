@@ -13,6 +13,15 @@ class AppSetting {
   static const String devMachineIpFromEnvironment =
       String.fromEnvironment('DEV_MACHINE_IP', defaultValue: '');
 
+  /// OCR CMND / Hộ chiếu qua OpenAI (mặc định bật).
+  /// Tắt khi build: `--dart-define=USE_OPENAI_OCR=false`
+  static const bool defaultUseOpenAiOcr =
+      bool.fromEnvironment('USE_OPENAI_OCR', defaultValue: true);
+
+  /// Model OpenAI gửi kèm request (để trống = dùng OPENAI_MODEL trên server).
+  static const String defaultOpenAiModel =
+      String.fromEnvironment('OPENAI_MODEL', defaultValue: '');
+
   static const int apiPort = 5054;
 
   /// Cổng Vietnam OCR API (FastAPI + CMND identity-card pipeline).

@@ -25,6 +25,14 @@ void main() {
     );
   });
 
+  test('load defaults useOpenAiOcr to true when not saved', () async {
+    final service = AppConfigService();
+    await service.load();
+
+    expect(service.useOpenAiOcr.value, isTrue);
+    expect(service.openAiModel.value, isEmpty);
+  });
+
   test('saveUseRemoteOcr persists toggle', () async {
     final service = AppConfigService();
     await service.load();

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/data/dto/name_autocomplete_dtos.dart';
@@ -334,6 +335,9 @@ class _SuggestionsPanel extends StatelessWidget {
         }
 
         final item = items[index];
+        final sharesLabel = item.hasShareholderMeta
+            ? NumberFormat('#,###').format(item.totalShares)
+            : null;
         return ListTile(
           dense: true,
           title: Text(
@@ -342,6 +346,14 @@ class _SuggestionsPanel extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
+          subtitle: sharesLabel != null
+              ? Text(
+                  '${item.mcd} · $sharesLabel CP',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: SvPalette.onSurfaceVariant,
+                  ),
+                )
+              : null,
           onTap: () => onSelected(item),
         );
       },

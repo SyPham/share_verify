@@ -1,3 +1,4 @@
+import 'package:share_verify/core/data/dto/name_autocomplete_dtos.dart';
 import 'package:share_verify/core/data/dto/shareholder_dtos.dart';
 import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dart';
 import 'package:share_verify/core/data/mappers/shareholder_mapper.dart';
@@ -18,6 +19,11 @@ abstract class ShareholderRepository {
     int pageSize = 20,
   });
   Future<Shareholder?> findByMcd(String mcd);
+  Future<NameAutocompletePageDto> searchFullNames(
+    String keyword, {
+    int page = 1,
+    int pageSize = 20,
+  });
   Future<RegistrationNoAutocompletePageDto> searchRegistrationNumbers(
     String keyword, {
     int page = 1,
@@ -141,6 +147,51 @@ class ShareholderRepositoryImpl implements ShareholderRepository {
     if (normalized.isEmpty) return null;
     final dto = await _remoteSource.getDetail(normalized);
     return ShareholderMapper.fromDetailDto(dto);
+  }
+
+  @override
+  Future<NameAutocompletePageDto> searchFullNames(
+    String keyword, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final normalized = keyword.trim();
+    if (normalized.length < 2) {
+      return const NameAutocompletePageDto(
+        items: [],
+        total: 0,
+        page: 1,
+        pageSize: 20,
+        totalPages: 0,
+      );
+    }
+
+    final result = await _remoteSource.searchFullNames(
+      normalized,
+      page: page,
+      pageSize: pageSize,
+    );
+    final totalPages = result.pageSize > 0
+        ? (result.totalCount / result.pageSize).ceil()
+        : 0;
+
+    return NameAutocompletePageDto(
+      items: result.items
+          .where((item) => item.fullName.isNotEmpty)
+          .map(
+            (item) => NameAutocompleteItemDto(
+              name: item.fullName,
+              type: 'full_name',
+              mcd: item.mcd,
+              totalShares: item.totalShares,
+            ),
+          )
+          .toList(),
+      total: result.totalCount,
+      page: result.page,
+      pageSize: result.pageSize,
+      totalPages: totalPages,
+    );
   }
 
   @override

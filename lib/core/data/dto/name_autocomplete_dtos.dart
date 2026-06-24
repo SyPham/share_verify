@@ -1,16 +1,25 @@
 class NameAutocompleteItemDto {
   final String name;
   final String type;
+  final String? mcd;
+  final num? totalShares;
 
   const NameAutocompleteItemDto({
     required this.name,
     required this.type,
+    this.mcd,
+    this.totalShares,
   });
+
+  bool get hasShareholderMeta =>
+      mcd != null && mcd!.isNotEmpty && totalShares != null;
 
   factory NameAutocompleteItemDto.fromJson(Map<String, dynamic> json) {
     return NameAutocompleteItemDto(
       name: json['name'] as String? ?? '',
       type: json['type'] as String? ?? 'full_name',
+      mcd: json['mcd'] as String?,
+      totalShares: json['totalShares'] as num?,
     );
   }
 }

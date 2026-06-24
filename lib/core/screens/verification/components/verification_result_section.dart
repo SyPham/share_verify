@@ -11,7 +11,6 @@ import 'package:share_verify/core/widgets/sv_status_badge.dart';
 class VerificationResultSection extends StatelessWidget {
   final Shareholder shareholder;
   final VoidCallback? onViewRecipients;
-  final VoidCallback? onProcessNextPerson;
   final bool isSubmitting;
   final bool isLoadingRecipients;
   final bool receiveJustCompleted;
@@ -20,7 +19,6 @@ class VerificationResultSection extends StatelessWidget {
     super.key,
     required this.shareholder,
     this.onViewRecipients,
-    this.onProcessNextPerson,
     this.isSubmitting = false,
     this.isLoadingRecipients = false,
     this.receiveJustCompleted = false,
@@ -121,15 +119,6 @@ class VerificationResultSection extends StatelessWidget {
                   if (onViewRecipients != null &&
                       shareholder.status == PaymentStatus.received)
                     const SizedBox(height: SvSpacing.sm),
-                  if (onProcessNextPerson != null) ...[
-                    SvPrimaryButton(
-                      label: 'Xử lý người tiếp theo',
-                      icon: Icons.restart_alt,
-                      onPressed: onProcessNextPerson,
-                      height: 56,
-                    ),
-                    const SizedBox(height: SvSpacing.sm),
-                  ],
                   if (!receiveJustCompleted)
                     Text(
                       'Cổ đông này đã nhận phụ cấp.',

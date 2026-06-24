@@ -12,8 +12,8 @@ class AppConfigService extends GetxService {
 
   final devMachineIp = ''.obs;
   final useRemoteOcr = true.obs;
-  final useOpenAiOcr = false.obs;
-  final openAiModel = ''.obs;
+  final useOpenAiOcr = AppSetting.defaultUseOpenAiOcr.obs;
+  final openAiModel = AppSetting.defaultOpenAiModel.obs;
 
   Future<AppConfigService> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -22,8 +22,10 @@ class AppConfigService extends GetxService {
 
     devMachineIp.value = saved.isNotEmpty ? saved : fromBuild;
     useRemoteOcr.value = prefs.getBool(_prefsKeyUseRemoteOcr) ?? true;
-    useOpenAiOcr.value = prefs.getBool(_prefsKeyUseOpenAiOcr) ?? false;
-    openAiModel.value = prefs.getString(_prefsKeyOpenAiModel)?.trim() ?? '';
+    useOpenAiOcr.value =
+        prefs.getBool(_prefsKeyUseOpenAiOcr) ?? AppSetting.defaultUseOpenAiOcr;
+    openAiModel.value = prefs.getString(_prefsKeyOpenAiModel)?.trim() ??
+        AppSetting.defaultOpenAiModel;
     return this;
   }
 

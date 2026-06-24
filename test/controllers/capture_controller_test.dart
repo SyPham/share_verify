@@ -157,6 +157,7 @@ Họ và tên: Trần Thị B
     SharedPreferences.setMockInitialValues({});
     final appConfig = AppConfigService();
     await appConfig.load();
+    await appConfig.saveUseOpenAiOcr(false);
 
     final cmnd = CaptureController(
       travelSupportRepository: travelSupportRepository,

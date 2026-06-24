@@ -80,7 +80,7 @@ class _ShareholdersListBody extends StatelessWidget {
           child: TextField(
             onChanged: controller.onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'Tìm theo họ tên, mã cổ đông, số giấy tờ...',
+              hintText: 'Tìm theo họ tên, mã cổ đông, số giấy tờ, SĐT...',
               prefixIcon: const Icon(Icons.search),
               filled: true,
               fillColor: SvPalette.surface,

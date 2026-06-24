@@ -1,3 +1,4 @@
+import 'package:share_verify/core/data/dto/name_autocomplete_dtos.dart';
 import 'package:share_verify/core/data/dto/shareholder_dtos.dart';
 import 'package:share_verify/core/data/dto/registration_no_autocomplete_dtos.dart';
 import 'package:share_verify/core/data/dto/photo_dtos.dart';
@@ -152,6 +153,44 @@ class FakeShareholderRepository implements ShareholderRepository {
       totalCount: all.length,
       page: page,
       pageSize: pageSize,
+    );
+  }
+
+  @override
+  Future<NameAutocompletePageDto> searchFullNames(
+    String keyword, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final pageResult = await searchShareholders(
+      keyword,
+      page: page,
+      pageSize: pageSize,
+    );
+    final items = <NameAutocompleteItemDto>[];
+    for (final item in pageResult.items) {
+      final name = item.fullName.trim();
+      if (name.isEmpty) continue;
+      items.add(
+        NameAutocompleteItemDto(
+          name: name,
+          type: 'full_name',
+          mcd: item.mcd,
+          totalShares: item.totalShares,
+        ),
+      );
+    }
+
+    final totalPages = pageSize > 0
+        ? (pageResult.totalCount / pageSize).ceil()
+        : 0;
+
+    return NameAutocompletePageDto(
+      items: items,
+      total: pageResult.totalCount,
+      page: pageResult.page,
+      pageSize: pageResult.pageSize,
+      totalPages: totalPages,
     );
   }
 

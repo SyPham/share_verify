@@ -4,6 +4,7 @@ import 'package:share_verify/core/commons/app_spacing.dart';
 import 'package:share_verify/core/commons/palette.dart';
 import 'package:share_verify/core/controllers/verification_controller.dart';
 import 'package:share_verify/core/data/sources/ocr_remote_source.dart';
+import 'package:share_verify/core/models/attendance_type.dart';
 import 'package:share_verify/core/repositories/shareholder_repository.dart';
 import 'package:share_verify/core/utils/identity_type_utils.dart';
 import 'package:share_verify/core/widgets/identity_type_radio_group.dart';
@@ -88,19 +89,30 @@ class VerificationManualIdentityForm extends GetView<VerificationController> {
             );
           }),
           const SizedBox(height: SvSpacing.sm),
-          NameAutocompleteField(
-            key: const ValueKey('manual-identity-name'),
-            controller: controller.manualNameController,
-            onSearch: (query, page) => Get.find<OcrRemoteSource>().searchNames(
-              query,
-              page: page,
-              type: 'full_name',
-            ),
-            decoration: fieldDecoration.copyWith(
-              labelText: 'Họ và tên',
-              hintText: 'Nhập họ tên trên giấy tờ',
-            ),
-          ),
+          Obx(() {
+            final isDirect =
+                controller.attendanceType.value == AttendanceType.direct;
+            return NameAutocompleteField(
+              key: ValueKey(
+                'manual-identity-name-${isDirect ? 'shareholder' : 'ocr'}',
+              ),
+              controller: controller.manualNameController,
+              onSearch: isDirect
+                  ? (query, page) => Get.find<ShareholderRepository>()
+                      .searchFullNames(query, page: page)
+                  : (query, page) => Get.find<OcrRemoteSource>().searchNames(
+                        query,
+                        page: page,
+                        type: 'full_name',
+                      ),
+              decoration: fieldDecoration.copyWith(
+                labelText: 'Họ và tên',
+                hintText: isDirect
+                    ? 'Nhập họ tên cổ đông (có thể gõ không dấu)'
+                    : 'Nhập họ tên trên giấy tờ',
+              ),
+            );
+          }),
           const SizedBox(height: SvSpacing.sm),
           Obx(() {
             final type = controller.manualIdentityType.value;

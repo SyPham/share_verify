@@ -79,6 +79,58 @@ class ShareholderSearchPageDto {
   }
 }
 
+class FullNameAutocompleteItemDto {
+  final String mcd;
+  final String fullName;
+  final num totalShares;
+
+  const FullNameAutocompleteItemDto({
+    required this.mcd,
+    required this.fullName,
+    required this.totalShares,
+  });
+
+  factory FullNameAutocompleteItemDto.fromJson(Map<String, dynamic> json) {
+    return FullNameAutocompleteItemDto(
+      mcd: json['mcd'] as String? ?? '',
+      fullName: json['fullName'] as String? ?? '',
+      totalShares: json['totalShares'] as num? ?? 0,
+    );
+  }
+}
+
+class FullNameAutocompletePageDto {
+  final List<FullNameAutocompleteItemDto> items;
+  final int totalCount;
+  final int page;
+  final int pageSize;
+
+  const FullNameAutocompletePageDto({
+    required this.items,
+    required this.totalCount,
+    required this.page,
+    required this.pageSize,
+  });
+
+  bool get hasMore => page * pageSize < totalCount;
+
+  factory FullNameAutocompletePageDto.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'] as List<dynamic>? ?? [];
+    return FullNameAutocompletePageDto(
+      items: rawItems
+          .map(
+            (item) => FullNameAutocompleteItemDto.fromJson(
+              item as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+      totalCount: json['totalCount'] as int? ?? 0,
+      page: json['page'] as int? ?? 1,
+      pageSize: json['pageSize'] as int? ?? 20,
+    );
+  }
+}
+
 class TravelSupportInfoDto {
   final String? receiverName;
   final String? receiverIdentityNo;

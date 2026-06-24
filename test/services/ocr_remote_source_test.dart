@@ -15,6 +15,7 @@ void main() {
   test('extractIdentity sends pre_cropped=false for CMND auto-crop', () async {
     final appConfig = AppConfigService();
     await appConfig.load();
+    await appConfig.saveUseOpenAiOcr(false);
 
     String? preCroppedField;
     final dio = Dio();
@@ -191,6 +192,7 @@ void main() {
   test('extractIdentity uses passportNumber for PASSPORT', () async {
     final appConfig = AppConfigService();
     await appConfig.load();
+    await appConfig.saveUseOpenAiOcr(false);
 
     String? requestPath;
     final dio = Dio();

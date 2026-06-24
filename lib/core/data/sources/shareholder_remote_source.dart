@@ -41,6 +41,22 @@ class ShareholderRemoteSource {
     return ShareholderSearchPageDto.fromJson(response.data ?? {});
   }
 
+  Future<FullNameAutocompletePageDto> searchFullNames(
+    String keyword, {
+    int page = 1,
+    int pageSize = 20,
+  }) async {
+    final response = await _client.get<Map<String, dynamic>>(
+      '/api/shareholders/full-names/autocomplete',
+      queryParameters: {
+        'keyword': keyword,
+        'page': page,
+        'pageSize': pageSize,
+      },
+    );
+    return FullNameAutocompletePageDto.fromJson(response.data ?? {});
+  }
+
   Future<RegistrationNoAutocompletePageDto> searchRegistrationNumbers(
     String keyword, {
     int page = 1,
